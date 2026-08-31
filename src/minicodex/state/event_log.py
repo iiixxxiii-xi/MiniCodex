@@ -10,23 +10,40 @@ import json
 import logging
 from pathlib import Path
 
-from minicodex.core.events import ActionEvent, Event, ObservationEvent
+from minicodex.core.events import (
+    ActionEvent,
+    ErrorEvent,
+    Event,
+    InvalidToolCallEvent,
+    ModelCallEvent,
+    ObservationEvent,
+    StepEvent,
+    SubmissionEvent,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _subclass_for_kind(kind: str | None) -> type[Event]:
+    """Map an event ``kind`` string to its concrete ``Event`` subclass."""
+    return {
+        "action": ActionEvent,
+        "observation": ObservationEvent,
+        "model_call": ModelCallEvent,
+        "step": StepEvent,
+        "invalid_tool_call": InvalidToolCallEvent,
+        "error": ErrorEvent,
+        "submission": SubmissionEvent,
+    }.get(kind or "", Event)
 
 
 def deserialize_event(data: dict) -> Event:
     """Reconstruct the correct :class:`Event` subclass from a JSON dict.
 
-    Dispatch is keyed on the ``kind`` field: ``"action"`` and ``"observation"``
-    map to their concrete subclasses, everything else to the base ``Event``.
+    Dispatch is keyed on the ``kind`` field; unknown kinds fall back to the
+    base ``Event`` so replay never fails on forward-compatible data.
     """
-    kind = data.get("kind")
-    if kind == "action":
-        return ActionEvent(**data)
-    if kind == "observation":
-        return ObservationEvent(**data)
-    return Event(**data)
+    return _subclass_for_kind(data.get("kind"))(**data)
 
 
 class EventLog:

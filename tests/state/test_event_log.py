@@ -1,6 +1,13 @@
 import json
 
-from minicodex.core.events import ActionEvent, Event, EventSource, ObservationEvent
+from minicodex.core.events import (
+    ActionEvent,
+    Event,
+    EventSource,
+    ModelCallEvent,
+    ObservationEvent,
+    SubmissionEvent,
+)
 from minicodex.state.event_log import EventLog, deserialize_event
 
 
@@ -95,3 +102,31 @@ def test_deserialize_event_dispatches_by_kind():
     ev = deserialize_event(base_data)
     assert isinstance(ev, Event)
     assert not isinstance(ev, ActionEvent)
+
+
+def test_deserialize_eval_event_kinds():
+    mc = deserialize_event(
+        {"id": "4", "timestamp": 0.0, "source": "model", "kind": "model_call",
+         "model": "mock", "input_tokens": 10, "output_tokens": 5, "cost_usd": 0.0}
+    )
+    assert isinstance(mc, ModelCallEvent)
+    assert mc.input_tokens == 10
+
+    sub = deserialize_event(
+        {"id": "5", "timestamp": 0.0, "source": "controller", "kind": "submission",
+         "content": "patch", "passed": True}
+    )
+    assert isinstance(sub, SubmissionEvent)
+    assert sub.passed is True
+
+
+def test_eval_event_roundtrip(tmp_path):
+    log = EventLog(tmp_path / "t.jsonl")
+    mc = ModelCallEvent(source=EventSource.MODEL, model="mock", input_tokens=3, output_tokens=2, cost_usd=0.0)
+    log.append(mc)
+    log.close()
+    events = log.replay()
+    assert len(events) == 1
+    assert isinstance(events[0], ModelCallEvent)
+    assert events[0].input_tokens == 3
+    assert events[0].output_tokens == 2
