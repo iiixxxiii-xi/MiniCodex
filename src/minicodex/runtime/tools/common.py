@@ -103,6 +103,36 @@ def run_subprocess(
         raise ToolError(f"Command not found: {argv[0]}", retryable=False) from exc
 
 
+def run_shell(
+    command: str,
+    *,
+    cwd: Path,
+    timeout: float | None,
+) -> subprocess.CompletedProcess:
+    """Run a shell command, classifying timeout as a retryable ``ToolError``."""
+    try:
+        return subprocess.run(
+            command,
+            shell=True,
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ToolError(
+            f"Command timed out after {timeout}s: {command}", retryable=True
+        ) from exc
+
+
+def combine_output(proc: subprocess.CompletedProcess) -> str:
+    """Merge stdout and stderr into one readable string."""
+    output = proc.stdout
+    if proc.stderr:
+        output = f"{output}\n{proc.stderr}" if output else proc.stderr
+    return output
+
+
 def tool(fn: Callable[..., dict]) -> Callable[..., dict]:
     """Wrap a tool function so it always returns a structured result dict.
 
