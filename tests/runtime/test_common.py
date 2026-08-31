@@ -1,6 +1,15 @@
+import sys
+
 from pydantic import BaseModel
 
-from minicodex.runtime.tools.common import ToolError, classify_error, failure, ok, parse_args
+from minicodex.runtime.tools.common import (
+    ToolError,
+    classify_error,
+    failure,
+    ok,
+    parse_args,
+    run_subprocess,
+)
 
 
 def test_ok_shape():
@@ -45,3 +54,18 @@ def test_parse_args_invalid_raises_toolerror():
         assert "Invalid arguments" in exc.message
     else:
         raise AssertionError("expected ToolError")
+
+
+def test_run_subprocess_decodes_non_ascii_utf8_output(tmp_path):
+    # Child writes UTF-8 bytes that are invalid under the Windows GBK codec;
+    # run_subprocess must decode them without raising UnicodeDecodeError.
+    expected = chr(0x4E2D) + chr(0x6587)
+    proc = run_subprocess(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stdout.buffer.write('\\u4e2d\\u6587'.encode('utf-8'))",
+        ],
+        cwd=tmp_path,
+    )
+    assert expected in proc.stdout

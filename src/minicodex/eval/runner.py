@@ -146,6 +146,8 @@ class Runner:
                 cwd=str(repo_path),
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=self.hidden_test_timeout,
             )
         except subprocess.TimeoutExpired:
@@ -165,6 +167,8 @@ class Runner:
                 ["git", "-C", str(repo_path), "diff"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=30,
             )
             if proc.returncode == 0 and proc.stdout:

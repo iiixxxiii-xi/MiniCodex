@@ -89,6 +89,8 @@ class DockerRuntime:
                 argv,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=self.config.pull_timeout,
                 check=True,
             )
@@ -123,6 +125,8 @@ class DockerRuntime:
                 argv,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=effective_timeout,
             )
         except subprocess.TimeoutExpired:
@@ -146,6 +150,8 @@ class DockerRuntime:
                 [self.config.executable, "kill", self.container_id],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=30,
             )
 
@@ -158,6 +164,8 @@ class DockerRuntime:
                 [self.config.executable, "rm", "-f", self.container_id],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=60,
             )
             logger.info("removed container %s", self.container_id)

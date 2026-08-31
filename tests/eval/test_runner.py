@@ -97,3 +97,16 @@ def test_runner_default_model_name_falls_back(tmp_path):
     runner = Runner(_finishing_model(), output_dir=tmp_path)
     runner.run(task)
     assert runner.model_name == "MockModel"
+
+
+def test_runner_hidden_test_decodes_non_ascii_utf8_output(tmp_path):
+    # A hidden test emitting UTF-8 bytes invalid under the Windows GBK codec
+    # must be read back without raising UnicodeDecodeError.
+    expected = chr(0x4E2D) + chr(0x6587)
+    code = "import sys; sys.stdout.buffer.write('\\u4e2d\\u6587'.encode('utf-8'))"
+    task = Task(id="t8", repo="demo", instruction="do it", test_command=_python_cmd(code))
+    runner = Runner(_finishing_model(), output_dir=tmp_path)
+    passed, error, output = runner._run_hidden_test(task, tmp_path)
+    assert passed is True
+    assert error == ""
+    assert expected in output
