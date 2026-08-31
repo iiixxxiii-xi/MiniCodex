@@ -1,0 +1,25 @@
+[project]
+name = "minicodex"
+version = "0.1.0"
+description = "A from-scratch provider-neutral coding-agent harness with evaluation"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7",
+    "typer>=0.12",
+    "jinja2>=3.1",
+    "anthropic>=0.40",
+    "openai>=1.50",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/minicodex"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
