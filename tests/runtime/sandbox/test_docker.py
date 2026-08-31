@@ -13,7 +13,7 @@ import pytest
 
 from minicodex.runtime.sandbox.docker import DockerRuntime
 
-IMAGE = "alpine:3.19"
+IMAGE = "python:3.11-slim"
 
 
 def _docker_available() -> bool:
