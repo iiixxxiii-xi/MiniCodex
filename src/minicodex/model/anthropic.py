@@ -18,6 +18,59 @@ def _get(obj, key, default=None):
     return getattr(obj, key, default)
 
 
+def to_anthropic_messages(messages: list[dict]) -> tuple[str, list[dict]]:
+    """Translate internal messages into the Anthropic Messages API shape.
+
+    Returns ``(system_text, messages)``. Internal ``system`` messages are folded
+    into the ``system`` string; assistant ``tool_calls`` become ``tool_use``
+    content blocks; consecutive ``tool`` messages become a single ``user``
+    message of ``tool_result`` blocks (Anthropic requires tool results in a
+    ``user`` turn immediately following the assistant's ``tool_use``).
+    """
+    system_parts: list[str] = []
+    converted: list[dict] = []
+    pending_tool_results: list[dict] = []
+
+    def flush_tool_results() -> None:
+        if pending_tool_results:
+            converted.append({"role": "user", "content": list(pending_tool_results)})
+            pending_tool_results.clear()
+
+    for message in messages:
+        role = message.get("role", "")
+        content = message.get("content", "") or ""
+        if role == "system":
+            system_parts.append(content)
+        elif role == "tool":
+            pending_tool_results.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": message.get("tool_call_id", ""),
+                    "content": content,
+                }
+            )
+        elif role == "assistant":
+            flush_tool_results()
+            blocks: list[dict] = []
+            if content:
+                blocks.append({"type": "text", "text": content})
+            for tc in message.get("tool_calls") or []:
+                blocks.append(
+                    {
+                        "type": "tool_use",
+                        "id": tc.get("id", ""),
+                        "name": tc.get("name", ""),
+                        "input": tc.get("arguments", {}) or {},
+                    }
+                )
+            converted.append({"role": "assistant", "content": blocks})
+        else:
+            flush_tool_results()
+            converted.append({"role": "user", "content": [{"type": "text", "text": content}]})
+    flush_tool_results()
+    return "\n".join(system_parts), converted
+
+
 def anthropic_message_to_response(message, *, model: str = "") -> ModelResponse:
     """Convert an Anthropic Messages API response into a ModelResponse.
 
@@ -86,14 +139,18 @@ class AnthropicModel:
     def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse:
         self._ensure_not_cancelled()
         client = self._get_client()
+        system, payload = to_anthropic_messages(messages)
 
         def call():
-            return client.messages.create(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                messages=messages,
-                tools=tools,
-            )
+            kwargs = {
+                "model": self.model,
+                "max_tokens": self.max_tokens,
+                "messages": payload,
+                "tools": tools,
+            }
+            if system:
+                kwargs["system"] = system
+            return client.messages.create(**kwargs)
 
         try:
             message = with_retry(call, max_attempts=self.max_attempts, log=logger)
@@ -104,13 +161,17 @@ class AnthropicModel:
     def stream(self, messages: list[dict], tools: list[dict]):
         self._ensure_not_cancelled()
         client = self._get_client()
+        system, payload = to_anthropic_messages(messages)
         try:
-            with client.messages.stream(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                messages=messages,
-                tools=tools,
-            ) as stream:
+            kwargs = {
+                "model": self.model,
+                "max_tokens": self.max_tokens,
+                "messages": payload,
+                "tools": tools,
+            }
+            if system:
+                kwargs["system"] = system
+            with client.messages.stream(**kwargs) as stream:
                 yield anthropic_message_to_response(stream.get_final_message(), model=self.model)
         except Exception as exc:
             raise ModelError(f"Anthropic model '{self.model}' stream failed: {exc}") from exc

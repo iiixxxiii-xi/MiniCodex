@@ -132,7 +132,8 @@ class AgentLoop:
                 cost_usd=response.usage.cost_usd,
             )
         )
-        self.messages.append(make_message("assistant", response.thought))
+        tool_calls = [{"id": tc.id, "name": tc.name, "arguments": tc.arguments} for tc in response.tool_calls]
+        self.messages.append(make_message("assistant", response.thought, tool_calls=tool_calls))
         for tool_call in response.tool_calls:
             try:
                 action = self._resolve(tool_call)

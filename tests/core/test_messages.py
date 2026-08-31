@@ -7,12 +7,13 @@ def test_make_message_basic():
     m = make_message("user", "hello")
     assert m["role"] == "user"
     assert m["content"] == "hello"
-    assert m["extra"] == {}
 
 
-def test_make_message_extra_merged():
+def test_make_message_extra_keys_flattened():
     m = make_message("assistant", "hi", tool_call_id="c1", name="agent")
-    assert m["extra"] == {"tool_call_id": "c1", "name": "agent"}
+    assert m["tool_call_id"] == "c1"
+    assert m["name"] == "agent"
+    assert "extra" not in m
 
 
 def test_step_output_defaults():

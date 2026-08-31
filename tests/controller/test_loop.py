@@ -40,6 +40,23 @@ def test_loop_runs_until_exit():
     assert result.exit_status == "finished"
 
 
+def test_loop_builds_function_calling_messages():
+    model = MockModel(script=[
+        {"tool_calls": [{"id": "call_1", "name": "shell", "arguments": {"command": "ls"}}]},
+        {"tool_calls": []},
+    ])
+    loop = AgentLoop(model=model, env=FakeEnv())
+    loop.run(task="do thing")
+
+    assistant = next(m for m in loop.messages if m["role"] == "assistant" and m.get("tool_calls"))
+    assert assistant["tool_calls"] == [{"id": "call_1", "name": "shell", "arguments": {"command": "ls"}}]
+
+    tool = next(m for m in loop.messages if m["role"] == "tool")
+    assert tool["tool_call_id"] == "call_1"
+    assert "tool_call_id" in tool  # top-level, not nested under 'extra'
+    assert tool["tool_name"] == "shell"
+
+
 def test_loop_hits_step_limit():
     model = MockModel(script=[{"tool_calls": [{"id": "1", "name": "shell", "arguments": {"command": "ls"}}]}])
     loop = AgentLoop(model=model, env=FakeEnv(), step_limit=2)

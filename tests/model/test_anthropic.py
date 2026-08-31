@@ -1,6 +1,6 @@
 import pytest
 
-from minicodex.model.anthropic import AnthropicModel, anthropic_message_to_response
+from minicodex.model.anthropic import AnthropicModel, anthropic_message_to_response, to_anthropic_messages
 from minicodex.model.base import ModelError
 
 
@@ -42,6 +42,42 @@ def test_anthropic_missing_usage_is_zero():
     r = anthropic_message_to_response(message)
     assert r.usage.input_tokens == 0
     assert r.usage.output_tokens == 0
+
+
+def test_to_anthropic_messages_converts_function_calling():
+    messages = [
+        {"role": "system", "content": "You are a coding agent."},
+        {"role": "user", "content": "do it"},
+        {"role": "assistant", "content": "Let me check.", "tool_calls": [
+            {"id": "call_1", "name": "shell", "arguments": {"command": "ls"}},
+            {"id": "call_2", "name": "read_file", "arguments": {"path": "a.txt"}},
+        ]},
+        {"role": "tool", "content": "file1.txt", "tool_call_id": "call_1", "tool_name": "shell"},
+        {"role": "tool", "content": "hello", "tool_call_id": "call_2", "tool_name": "read_file"},
+        {"role": "assistant", "content": "done", "tool_calls": []},
+    ]
+    system, converted = to_anthropic_messages(messages)
+
+    assert system == "You are a coding agent."
+
+    assert converted[0] == {"role": "user", "content": [{"type": "text", "text": "do it"}]}
+
+    assistant = converted[1]
+    assert assistant["role"] == "assistant"
+    assert {"type": "text", "text": "Let me check."} in assistant["content"]
+    tool_uses = [b for b in assistant["content"] if b["type"] == "tool_use"]
+    assert tool_uses[0] == {"type": "tool_use", "id": "call_1", "name": "shell", "input": {"command": "ls"}}
+    assert tool_uses[1]["name"] == "read_file"
+
+    # tool results are grouped into a single user message of tool_result blocks
+    results = converted[2]
+    assert results["role"] == "user"
+    assert results["content"] == [
+        {"type": "tool_result", "tool_use_id": "call_1", "content": "file1.txt"},
+        {"type": "tool_result", "tool_use_id": "call_2", "content": "hello"},
+    ]
+
+    assert converted[3] == {"role": "assistant", "content": [{"type": "text", "text": "done"}]}
 
 
 def test_anthropic_model_instantiates_without_client():

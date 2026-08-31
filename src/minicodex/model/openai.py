@@ -19,6 +19,49 @@ def _get(obj, key, default=None):
     return getattr(obj, key, default)
 
 
+def to_openai_messages(messages: list[dict]) -> list[dict]:
+    """Translate internal messages into the OpenAI chat-completion protocol.
+
+    The internal format keeps structured tool-call data on assistant messages
+    (``tool_calls`` = ``[{id, name, arguments}]``) and a top-level
+    ``tool_call_id`` on tool messages. OpenAI expects assistant ``tool_calls``
+    wrapped in a ``function`` object (with JSON-stringified arguments) and a
+    top-level ``tool_call_id`` on ``tool`` messages. Internal-only fields
+    (``tool_name``, ``extra``) are dropped.
+    """
+    converted: list[dict] = []
+    for message in messages:
+        role = message.get("role", "")
+        content = message.get("content", "")
+        if role == "tool":
+            converted.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": message.get("tool_call_id", ""),
+                    "content": content or "",
+                }
+            )
+        elif role == "assistant":
+            entry: dict = {"role": "assistant", "content": content}
+            tool_calls = message.get("tool_calls") or []
+            if tool_calls:
+                entry["tool_calls"] = [
+                    {
+                        "id": tc.get("id", ""),
+                        "type": "function",
+                        "function": {
+                            "name": tc.get("name", ""),
+                            "arguments": json.dumps(tc.get("arguments", {}) or {}),
+                        },
+                    }
+                    for tc in tool_calls
+                ]
+            converted.append(entry)
+        else:
+            converted.append({"role": role, "content": content or ""})
+    return converted
+
+
 def openai_message_to_response(
     message, usage=None, finish_reason: str = "", *, model: str = ""
 ) -> ModelResponse:
@@ -66,9 +109,19 @@ class OpenAIModel:
     test; unit tests cover the pure conversion function and failure handling.
     """
 
-    def __init__(self, model: str, *, client=None, max_attempts: int = 5):
+    def __init__(
+        self,
+        model: str,
+        *,
+        client=None,
+        base_url: str | None = None,
+        api_key: str | None = None,
+        max_attempts: int = 5,
+    ):
         self.model = model
         self._client = client
+        self.base_url = base_url
+        self.api_key = api_key
         self.max_attempts = max_attempts
         self._cancelled = False
 
@@ -76,7 +129,7 @@ class OpenAIModel:
         if self._client is None:
             import openai
 
-            self._client = openai.OpenAI()
+            self._client = openai.OpenAI(base_url=self.base_url, api_key=self.api_key)
         return self._client
 
     def _ensure_not_cancelled(self) -> None:
@@ -86,11 +139,12 @@ class OpenAIModel:
     def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse:
         self._ensure_not_cancelled()
         client = self._get_client()
+        payload = to_openai_messages(messages)
 
         def call():
             return client.chat.completions.create(
                 model=self.model,
-                messages=messages,
+                messages=payload,
                 tools=tools,
             )
 
@@ -109,10 +163,11 @@ class OpenAIModel:
     def stream(self, messages: list[dict], tools: list[dict]):
         self._ensure_not_cancelled()
         client = self._get_client()
+        payload = to_openai_messages(messages)
         try:
             stream = client.chat.completions.create(
                 model=self.model,
-                messages=messages,
+                messages=payload,
                 tools=tools,
                 stream=True,
             )
