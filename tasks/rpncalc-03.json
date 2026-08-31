@@ -1,0 +1,13 @@
+{
+  "id": "rpncalc-03",
+  "repo": "rpncalc",
+  "instruction": "Fix `apply` so the division operator returns a float result instead of truncating with integer floor division.",
+  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -20,7 +20,7 @@\n     if op == \"*\":\n         return a * b\n     if op == \"/\":\n-        return a // b\n+        return a / b\n     raise ValueError(f\"unknown operator: {op}\")\n \n \n",
+  "test_command": "python -m pytest tests/test_rpncalc.py::test_apply -q",
+  "repo_path": "tasks/repos/rpncalc",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "numeric",
+    "estimated_lines": 1
+  }
+}

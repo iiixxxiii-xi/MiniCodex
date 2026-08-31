@@ -1,0 +1,13 @@
+{
+  "id": "numstats-04",
+  "repo": "numstats",
+  "instruction": "Fix `variance` so it computes the sample variance (divide by n-1) rather than the population variance (divide by n).",
+  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -21,7 +21,7 @@\n def variance(values):\n     \"\"\"Return the sample variance of ``values``.\"\"\"\n     m = sum(values) / len(values)\n-    return sum((x - m) ** 2 for x in values) / len(values)\n+    return sum((x - m) ** 2 for x in values) / (len(values) - 1)\n \n \n def percentile(values, p):\n",
+  "test_command": "python -m pytest tests/test_numstats.py::test_variance -q",
+  "repo_path": "tasks/repos/numstats",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "numeric",
+    "estimated_lines": 1
+  }
+}

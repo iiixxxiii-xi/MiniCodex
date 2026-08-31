@@ -1,0 +1,13 @@
+{
+  "id": "seqops-05",
+  "repo": "seqops",
+  "instruction": "Fix `partition` so elements equal to the pivot are included in the left partition (they are currently dropped).",
+  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -41,7 +41,7 @@\n \n def partition(seq, pivot):\n     \"\"\"Return (left, right) where left <= pivot < right.\"\"\"\n-    left = [x for x in seq if x < pivot]\n+    left = [x for x in seq if x <= pivot]\n     right = [x for x in seq if x > pivot]\n     return left, right\n \n",
+  "test_command": "python -m pytest tests/test_seqops.py::test_partition -q",
+  "repo_path": "tasks/repos/seqops",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "algorithm",
+    "estimated_lines": 1
+  }
+}

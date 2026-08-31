@@ -1,0 +1,13 @@
+{
+  "id": "seqops-03",
+  "repo": "seqops",
+  "instruction": "Fix `remove_duplicates` so it preserves the original order of first occurrences (using a set currently loses ordering).",
+  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -31,7 +31,13 @@\n \n def remove_duplicates(seq):\n     \"\"\"Return ``seq`` with duplicates removed, preserving order.\"\"\"\n-    return list(set(seq))\n+    seen = set()\n+    out = []\n+    for x in seq:\n+        if x not in seen:\n+            seen.add(x)\n+            out.append(x)\n+    return out\n \n \n def rotate(seq, k):\n",
+  "test_command": "python -m pytest tests/test_seqops.py::test_remove_duplicates -q",
+  "repo_path": "tasks/repos/seqops",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "algorithm",
+    "estimated_lines": 5
+  }
+}

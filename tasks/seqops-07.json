@@ -1,0 +1,13 @@
+{
+  "id": "seqops-07",
+  "repo": "seqops",
+  "instruction": "Fix `chunk` so it keeps the final partial chunk (the range currently stops short of the end).",
+  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -53,7 +53,7 @@\n \n def chunk(seq, size):\n     \"\"\"Split ``seq`` into chunks of ``size``.\"\"\"\n-    return [seq[i:i + size] for i in range(0, len(seq) - size, size)]\n+    return [seq[i:i + size] for i in range(0, len(seq), size)]\n \n \n def max_subarray(nums):\n",
+  "test_command": "python -m pytest tests/test_seqops.py::test_chunk -q",
+  "repo_path": "tasks/repos/seqops",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "algorithm",
+    "estimated_lines": 1
+  }
+}

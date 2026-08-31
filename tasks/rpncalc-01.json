@@ -1,0 +1,13 @@
+{
+  "id": "rpncalc-01",
+  "repo": "rpncalc",
+  "instruction": "Fix `is_number` so it recognises floats and negative numbers, not just all-digit strings.",
+  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -3,7 +3,11 @@\n \n def is_number(token):\n     \"\"\"Return True if ``token`` can be parsed as a number.\"\"\"\n-    return token.isdigit()\n+    try:\n+        float(token)\n+        return True\n+    except ValueError:\n+        return False\n \n \n def parse_number(token):\n",
+  "test_command": "python -m pytest tests/test_rpncalc.py::test_is_number -q",
+  "repo_path": "tasks/repos/rpncalc",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "parsing",
+    "estimated_lines": 3
+  }
+}

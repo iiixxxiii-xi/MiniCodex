@@ -1,0 +1,13 @@
+{
+  "id": "numstats-05",
+  "repo": "numstats",
+  "instruction": "Fix `percentile` so p=100 does not index past the end of the sorted list.",
+  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -27,7 +27,7 @@\n def percentile(values, p):\n     \"\"\"Return the ``p``-th percentile (0-100) of ``values``.\"\"\"\n     s = sorted(values)\n-    idx = int(len(s) * p / 100)\n+    idx = min(int(len(s) * p / 100), len(s) - 1)\n     return s[idx]\n \n \n",
+  "test_command": "python -m pytest tests/test_numstats.py::test_percentile -q",
+  "repo_path": "tasks/repos/numstats",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "numeric",
+    "estimated_lines": 1
+  }
+}

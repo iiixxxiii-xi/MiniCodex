@@ -1,0 +1,13 @@
+{
+  "id": "datastore-07",
+  "repo": "datastore",
+  "instruction": "Fix `nested_get` so it returns None when a key in the dotted path is missing instead of raising a KeyError.",
+  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -42,6 +42,8 @@\n def nested_get(obj, path):\n     \"\"\"Return the value at a dotted ``path`` (e.g. 'a.b.c') or None if missing.\"\"\"\n     for part in path.split(\".\"):\n+        if not isinstance(obj, dict) or part not in obj:\n+            return None\n         obj = obj[part]\n     return obj\n \n",
+  "test_command": "python -m pytest tests/test_datastore.py::test_nested_get -q",
+  "repo_path": "tasks/repos/datastore",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "data",
+    "estimated_lines": 7
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "textutils-09",
+  "repo": "textutils",
+  "instruction": "Fix `wrap` so each line contains the full `width` characters. It currently drops the last character of every line.",
+  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -55,7 +55,7 @@\n \n def wrap(text, width):\n     \"\"\"Wrap ``text`` into lines of at most ``width`` characters.\"\"\"\n-    return \"\\n\".join(text[i:i + width - 1] for i in range(0, len(text), width))\n+    return \"\\n\".join(text[i:i + width] for i in range(0, len(text), width))\n \n \n def count_occurrences(text, sub):\n",
+  "test_command": "python -m pytest tests/test_textutils.py::test_wrap -q",
+  "repo_path": "tasks/repos/textutils",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "string",
+    "estimated_lines": 1
+  }
+}

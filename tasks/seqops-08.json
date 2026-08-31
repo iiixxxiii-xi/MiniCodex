@@ -1,0 +1,13 @@
+{
+  "id": "seqops-08",
+  "repo": "seqops",
+  "instruction": "Fix `max_subarray` so it handles all-negative arrays (initialising the best sum to 0 returns 0 instead of the largest negative number).",
+  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -58,8 +58,8 @@\n \n def max_subarray(nums):\n     \"\"\"Return the maximum subarray sum (Kadane's algorithm).\"\"\"\n-    best = 0\n-    current = 0\n+    best = nums[0]\n+    current = nums[0]\n     for x in nums:\n         current = max(x, current + x)\n         best = max(best, current)\n",
+  "test_command": "python -m pytest tests/test_seqops.py::test_max_subarray -q",
+  "repo_path": "tasks/repos/seqops",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "algorithm",
+    "estimated_lines": 2
+  }
+}

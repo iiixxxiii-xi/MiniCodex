@@ -1,0 +1,13 @@
+{
+  "id": "rpncalc-08",
+  "repo": "rpncalc",
+  "instruction": "Fix `format_number` so it preserves the fractional part for non-integer values instead of truncating with int().",
+  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -56,4 +56,4 @@\n \n def format_number(value):\n     \"\"\"Format a number for display (drop a trailing '.0').\"\"\"\n-    return str(int(value))\n+    return str(int(value)) if value == int(value) else str(value)\n",
+  "test_command": "python -m pytest tests/test_rpncalc.py::test_format_number -q",
+  "repo_path": "tasks/repos/rpncalc",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "numeric",
+    "estimated_lines": 1
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "datastore-02",
+  "repo": "datastore",
+  "instruction": "Fix `parse_csv` so each field is stripped of surrounding whitespace.",
+  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -10,7 +10,7 @@\n \n def parse_csv(text):\n     \"\"\"Parse a CSV string into a list of rows (lists of fields).\"\"\"\n-    return [line.split(\",\") for line in text.splitlines()]\n+    return [[f.strip() for f in line.split(\",\")] for line in text.splitlines()]\n \n \n def filter_records(records, key, value):\n",
+  "test_command": "python -m pytest tests/test_datastore.py::test_parse_csv -q",
+  "repo_path": "tasks/repos/datastore",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "data",
+    "estimated_lines": 1
+  }
+}

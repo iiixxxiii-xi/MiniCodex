@@ -1,0 +1,13 @@
+{
+  "id": "textutils-10",
+  "repo": "textutils",
+  "instruction": "Fix `count_occurrences` to count only non-overlapping occurrences. It currently advances one character at a time even after a match.",
+  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -65,5 +65,7 @@\n     while i < len(text):\n         if text.startswith(sub, i):\n             count += 1\n-        i += 1\n+            i += len(sub)\n+        else:\n+            i += 1\n     return count\n",
+  "test_command": "python -m pytest tests/test_textutils.py::test_count_occurrences -q",
+  "repo_path": "tasks/repos/textutils",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "string",
+    "estimated_lines": 4
+  }
+}

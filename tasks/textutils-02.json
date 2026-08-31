@@ -1,0 +1,13 @@
+{
+  "id": "textutils-02",
+  "repo": "textutils",
+  "instruction": "Fix `capitalize_words` so it capitalizes the first letter of each word while preserving the remaining characters. `str.capitalize()` lowercases the rest of the word.",
+  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -12,7 +12,7 @@\n \n def capitalize_words(s):\n     \"\"\"Capitalize the first letter of each word, preserving the rest.\"\"\"\n-    return \" \".join(w.capitalize() for w in s.split())\n+    return \" \".join((w[:1].upper() + w[1:] if w else w) for w in s.split())\n \n \n def count_vowels(s):\n",
+  "test_command": "python -m pytest tests/test_textutils.py::test_capitalize_words -q",
+  "repo_path": "tasks/repos/textutils",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "string",
+    "estimated_lines": 1
+  }
+}

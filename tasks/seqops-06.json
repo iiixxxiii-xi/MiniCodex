@@ -1,0 +1,13 @@
+{
+  "id": "seqops-06",
+  "repo": "seqops",
+  "instruction": "Fix `flatten` so it recursively flattens arbitrarily nested lists, not just a single level.",
+  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -48,7 +48,13 @@\n \n def flatten(nested):\n     \"\"\"Flatten a nested list of lists into a single list.\"\"\"\n-    return [item for sublist in nested for item in sublist]\n+    out = []\n+    for item in nested:\n+        if isinstance(item, list):\n+            out.extend(flatten(item))\n+        else:\n+            out.append(item)\n+    return out\n \n \n def chunk(seq, size):\n",
+  "test_command": "python -m pytest tests/test_seqops.py::test_flatten -q",
+  "repo_path": "tasks/repos/seqops",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "algorithm",
+    "estimated_lines": 5
+  }
+}

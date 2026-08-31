@@ -1,0 +1,13 @@
+{
+  "id": "seqops-01",
+  "repo": "seqops",
+  "instruction": "Fix `binary_search` so it correctly finds a target at the very start of the list (the high bound is currently decremented past the target).",
+  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -11,7 +11,7 @@\n         if arr[mid] < target:\n             lo = mid + 1\n         else:\n-            hi = mid - 1\n+            hi = mid\n     return -1\n \n \n",
+  "test_command": "python -m pytest tests/test_seqops.py::test_binary_search -q",
+  "repo_path": "tasks/repos/seqops",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "algorithm",
+    "estimated_lines": 1
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "fileops-07",
+  "repo": "fileops",
+  "instruction": "Fix `read_csv_as_dicts` so it skips the header row instead of turning it into a data record.",
+  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -52,7 +52,7 @@\n     with open(path, encoding=\"utf-8\") as f:\n         rows = list(csv.reader(f))\n     header = rows[0]\n-    return [dict(zip(header, row)) for row in rows]\n+    return [dict(zip(header, row)) for row in rows[1:]]\n \n \n def append_line(path, line):\n",
+  "test_command": "python -m pytest tests/test_fileops.py::test_read_csv_as_dicts -q",
+  "repo_path": "tasks/repos/fileops",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "file-io",
+    "estimated_lines": 1
+  }
+}

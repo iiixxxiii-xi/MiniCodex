@@ -1,0 +1,13 @@
+{
+  "id": "textutils-01",
+  "repo": "textutils",
+  "instruction": "Fix `reverse_words` so it returns the words in reverse order. It currently drops the first word because of an off-by-one in the loop range.",
+  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -5,7 +5,7 @@\n     \"\"\"Return the words of ``s`` in reverse order.\"\"\"\n     words = s.split()\n     result = []\n-    for i in range(len(words) - 1, 0, -1):\n+    for i in range(len(words) - 1, -1, -1):\n         result.append(words[i])\n     return \" \".join(result)\n \n",
+  "test_command": "python -m pytest tests/test_textutils.py::test_reverse_words -q",
+  "repo_path": "tasks/repos/textutils",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "string",
+    "estimated_lines": 1
+  }
+}

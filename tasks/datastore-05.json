@@ -1,0 +1,13 @@
+{
+  "id": "datastore-05",
+  "repo": "datastore",
+  "instruction": "Fix `to_csv` so it honours the `delimiter` argument instead of always joining with a comma.",
+  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -28,7 +28,7 @@\n \n def to_csv(rows, delimiter=\",\"):\n     \"\"\"Serialize a list of rows into a CSV string using ``delimiter``.\"\"\"\n-    return \"\\n\".join(\",\".join(map(str, row)) for row in rows)\n+    return \"\\n\".join(delimiter.join(map(str, row)) for row in rows)\n \n \n def summarize(values):\n",
+  "test_command": "python -m pytest tests/test_datastore.py::test_to_csv -q",
+  "repo_path": "tasks/repos/datastore",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "data",
+    "estimated_lines": 1
+  }
+}

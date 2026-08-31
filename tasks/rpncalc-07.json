@@ -1,0 +1,13 @@
+{
+  "id": "rpncalc-07",
+  "repo": "rpncalc",
+  "instruction": "Fix `evaluate` so it pops the operands in the correct order for non-commutative operators (subtraction and division currently produce reversed results).",
+  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -46,8 +46,8 @@\n     stack = []\n     for token in tokens:\n         if token in (\"+\", \"-\", \"*\", \"/\"):\n+            b = stack.pop()\n             a = stack.pop()\n-            b = stack.pop()\n             stack.append(apply(token, a, b))\n         else:\n             stack.append(parse_number(token))\n",
+  "test_command": "python -m pytest tests/test_rpncalc.py::test_evaluate -q",
+  "repo_path": "tasks/repos/rpncalc",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "algorithm",
+    "estimated_lines": 2
+  }
+}

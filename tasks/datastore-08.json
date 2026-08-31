@@ -1,0 +1,13 @@
+{
+  "id": "datastore-08",
+  "repo": "datastore",
+  "instruction": "Fix `dedupe` so it keeps the first occurrence of each key (it currently keeps the duplicates instead).",
+  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -51,7 +51,7 @@\n     seen = set()\n     out = []\n     for r in records:\n-        if r[key] in seen:\n+        if r[key] not in seen:\n             out.append(r)\n         seen.add(r[key])\n     return out\n",
+  "test_command": "python -m pytest tests/test_datastore.py::test_dedupe -q",
+  "repo_path": "tasks/repos/datastore",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "data",
+    "estimated_lines": 2
+  }
+}

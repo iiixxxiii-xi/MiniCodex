@@ -1,0 +1,13 @@
+{
+  "id": "textutils-07",
+  "repo": "textutils",
+  "instruction": "Fix `is_palindrome` so it ignores case and spaces when checking whether a string is a palindrome.",
+  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -42,6 +42,7 @@\n \n def is_palindrome(s):\n     \"\"\"Return True if ``s`` is a palindrome ignoring case and spaces.\"\"\"\n+    s = \"\".join(s.lower().split())\n     return s == s[::-1]\n \n \n",
+  "test_command": "python -m pytest tests/test_textutils.py::test_is_palindrome -q",
+  "repo_path": "tasks/repos/textutils",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "string",
+    "estimated_lines": 2
+  }
+}

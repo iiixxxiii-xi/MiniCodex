@@ -1,0 +1,13 @@
+{
+  "id": "fileops-04",
+  "repo": "fileops",
+  "instruction": "Fix `parse_kv` so a value containing '=' is preserved (split on the first '=' only, not every one).",
+  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -30,7 +30,7 @@\n             line = line.strip()\n             if not line:\n                 continue\n-            key, value = line.split(\"=\")\n+            key, value = line.split(\"=\", 1)\n             result[key] = value\n     return result\n \n",
+  "test_command": "python -m pytest tests/test_fileops.py::test_parse_kv -q",
+  "repo_path": "tasks/repos/fileops",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "file-io",
+    "estimated_lines": 1
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "fileops-08",
+  "repo": "fileops",
+  "instruction": "Fix `append_line` so it writes a trailing newline after each line (successive appends currently concatenate onto one line).",
+  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -58,4 +58,4 @@\n def append_line(path, line):\n     \"\"\"Append ``line`` (plus a newline) to ``path``.\"\"\"\n     with open(path, \"a\", encoding=\"utf-8\") as f:\n-        f.write(line)\n+        f.write(line + \"\\n\")\n",
+  "test_command": "python -m pytest tests/test_fileops.py::test_append_line -q",
+  "repo_path": "tasks/repos/fileops",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "file-io",
+    "estimated_lines": 1
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "numstats-01",
+  "repo": "numstats",
+  "instruction": "Fix `mean` so it raises a `ValueError` for an empty input list instead of crashing with a division-by-zero error.",
+  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -3,6 +3,8 @@\n \n def mean(values):\n     \"\"\"Return the arithmetic mean of ``values``.\"\"\"\n+    if not values:\n+        raise ValueError(\"mean of empty sequence\")\n     return sum(values) / len(values)\n \n \n",
+  "test_command": "python -m pytest tests/test_numstats.py::test_mean -q",
+  "repo_path": "tasks/repos/numstats",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "numeric",
+    "estimated_lines": 2
+  }
+}

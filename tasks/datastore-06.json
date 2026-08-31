@@ -1,0 +1,13 @@
+{
+  "id": "datastore-06",
+  "repo": "datastore",
+  "instruction": "Fix `summarize` so it sums floats (e.g. \"1.5\") instead of coercing every value with int() and crashing on decimals.",
+  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -35,7 +35,7 @@\n     \"\"\"Sum a list of numeric strings/values into a float.\"\"\"\n     total = 0\n     for v in values:\n-        total += int(v)\n+        total += float(v)\n     return total\n \n \n",
+  "test_command": "python -m pytest tests/test_datastore.py::test_summarize -q",
+  "repo_path": "tasks/repos/datastore",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "numeric",
+    "estimated_lines": 1
+  }
+}

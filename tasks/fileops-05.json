@@ -1,0 +1,13 @@
+{
+  "id": "fileops-05",
+  "repo": "fileops",
+  "instruction": "Fix `list_by_extension` so the extension match is case-insensitive (a .TXT file should match '.txt').",
+  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -37,7 +37,7 @@\n \n def list_by_extension(directory, extension):\n     \"\"\"Return filenames in ``directory`` ending with ``extension`` (sorted).\"\"\"\n-    return sorted(f for f in os.listdir(directory) if f.endswith(extension))\n+    return sorted(f for f in os.listdir(directory) if f.lower().endswith(extension.lower()))\n \n \n def safe_write(path, content):\n",
+  "test_command": "python -m pytest tests/test_fileops.py::test_list_by_extension -q",
+  "repo_path": "tasks/repos/fileops",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "file-io",
+    "estimated_lines": 1
+  }
+}

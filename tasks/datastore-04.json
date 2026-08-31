@@ -1,0 +1,13 @@
+{
+  "id": "datastore-04",
+  "repo": "datastore",
+  "instruction": "Fix `group_by` so records missing the key are grouped under 'unknown' instead of raising a KeyError.",
+  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -22,7 +22,7 @@\n     \"\"\"Group records by the value of ``key`` (missing key -> 'unknown').\"\"\"\n     groups = {}\n     for r in records:\n-        groups.setdefault(r[key], []).append(r)\n+        groups.setdefault(r.get(key, \"unknown\"), []).append(r)\n     return groups\n \n \n",
+  "test_command": "python -m pytest tests/test_datastore.py::test_group_by -q",
+  "repo_path": "tasks/repos/datastore",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "data",
+    "estimated_lines": 1
+  }
+}
