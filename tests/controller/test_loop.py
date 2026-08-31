@@ -9,6 +9,13 @@ class FakeEnv:
         return {"output": "ok", "returncode": 0}
 
 
+class ExplodingEnv:
+    """An env whose ``execute`` raises an unexpected exception (not a MinicodexError)."""
+
+    def execute(self, action):
+        raise RuntimeError("unexpected env failure")
+
+
 class FailingModel:
     def __init__(self, error=None):
         self.error = error or ModelError("boom")
@@ -45,6 +52,13 @@ def test_loop_repeated_format_error():
     loop = AgentLoop(model=model, env=FakeEnv(), max_requeries=2)
     result = loop.run(task="x")
     assert result.exit_status == "RepeatedFormatError"
+
+
+def test_loop_degrades_on_unexpected_error():
+    model = MockModel(script=[{"tool_calls": [{"id": "1", "name": "shell", "arguments": {"command": "ls"}}]}])
+    loop = AgentLoop(model=model, env=ExplodingEnv())
+    result = loop.run(task="x")
+    assert result.exit_status == "Error"
 
 
 def test_loop_degrades_on_model_error():

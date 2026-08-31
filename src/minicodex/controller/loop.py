@@ -63,6 +63,9 @@ class AgentLoop:
                 except LimitsExceeded as exc:
                     logger.info("limits exceeded: %s", exc.reason)
                     return StepOutput(done=True, exit_status="LimitsExceeded")
+                except Exception as exc:  # defensive last resort: never let the loop crash
+                    logger.exception("unexpected error in agent loop: %s", exc)
+                    return StepOutput(done=True, exit_status="Error")
         finally:
             self._cleanup()
 
