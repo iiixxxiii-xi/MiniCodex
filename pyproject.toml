@@ -23,3 +23,6 @@ packages = ["src/minicodex"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "docker: tests that require a running Docker daemon",
+]
