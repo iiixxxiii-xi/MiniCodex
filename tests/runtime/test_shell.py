@@ -26,7 +26,7 @@ def test_shell_nonzero_exit(tmp_path):
 
 
 def test_shell_timeout_is_retryable(tmp_path):
-    cmd = _pycmd(tmp_path, "slow.py", "import time\ntime.sleep(5)\n")
+    cmd = _pycmd(tmp_path, "slow.py", "import time\ntime.sleep(1)\n")
     result = run({"command": cmd, "timeout": 0.2}, cwd=tmp_path)
     assert result["returncode"] != 0
     assert result["retryable"] is True
