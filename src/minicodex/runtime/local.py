@@ -58,6 +58,12 @@ class LocalRuntime:
             logger.exception("tool '%s' raised", name)
             return failure(f"Tool '{name}' failed: {exc}", retryable=classify_error(exc))
 
+    def register_builtins(self) -> None:
+        from minicodex.runtime.tools import BUILTIN_TOOLS
+
+        for tool_def, fn in BUILTIN_TOOLS:
+            self.register(tool_def, fn)
+
     def start(self) -> None:
         self._started = True
         logger.info("local runtime started (cwd=%s)", self.cwd)
@@ -65,3 +71,10 @@ class LocalRuntime:
     def stop(self) -> None:
         self._started = False
         logger.info("local runtime stopped")
+
+
+def builtin_runtime(cwd: str | Path | None = None) -> LocalRuntime:
+    """A ``LocalRuntime`` preloaded with the built-in tool set."""
+    runtime = LocalRuntime(cwd=cwd)
+    runtime.register_builtins()
+    return runtime

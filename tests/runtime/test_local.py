@@ -1,7 +1,9 @@
 from pathlib import Path
 
+from minicodex.controller.loop import AgentLoop
+from minicodex.model.mock import MockModel
 from minicodex.registry.schema import Tool
-from minicodex.runtime.local import LocalRuntime
+from minicodex.runtime.local import LocalRuntime, builtin_runtime
 
 
 def make_tool(name: str) -> Tool:
@@ -66,3 +68,33 @@ def test_tools_operate_within_cwd(tmp_path):
     rt.register(make_tool("where"), where)
     result = rt.execute({"name": "where", "arguments": {}})
     assert Path(result["output"]) == tmp_path.resolve()
+
+
+def test_builtin_runtime_registers_all_tools(tmp_path):
+    rt = builtin_runtime(cwd=tmp_path)
+    names = [s["function"]["name"] for s in rt.schemas()]
+    assert names == [
+        "read_file",
+        "write_file",
+        "grep",
+        "apply_patch",
+        "shell",
+        "git",
+        "test_runner",
+    ]
+
+
+def test_mock_model_and_local_runtime_run_through(tmp_path):
+    """End-to-end: MockModel drives a read_file action through the AgentLoop."""
+    (tmp_path / "hello.txt").write_text("hello from workspace\n", encoding="utf-8")
+    runtime = builtin_runtime(cwd=tmp_path)
+    model = MockModel(script=[
+        {"tool_calls": [{"id": "c1", "name": "read_file", "arguments": {"path": "hello.txt"}}]},
+        {"tool_calls": []},  # triggers exit
+    ])
+    loop = AgentLoop(model=model, env=runtime, tools=runtime.schemas())
+    result = loop.run(task="Read hello.txt")
+    assert result.exit_status == "finished"
+    observations = [m for m in loop.messages if m["role"] == "tool"]
+    assert observations
+    assert "hello from workspace" in observations[0]["content"]
