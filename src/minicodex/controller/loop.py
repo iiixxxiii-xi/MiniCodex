@@ -1,10 +1,22 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from minicodex.controller.budgets import BudgetTracker
 from minicodex.controller.exceptions import FormatError, LimitsExceeded
 from minicodex.controller.policies.retry import RequeryPolicy
+from minicodex.core.events import (
+    ActionEvent,
+    ErrorEvent,
+    Event,
+    EventSink,
+    EventSource,
+    InvalidToolCallEvent,
+    ModelCallEvent,
+    ObservationEvent,
+    StepEvent,
+)
 from minicodex.core.messages import make_message
 from minicodex.core.types import StepOutput
 from minicodex.model.base import ModelError
@@ -28,6 +40,8 @@ class AgentLoop:
         cost_limit: float = 0.0,
         max_requeries: int = 3,
         tools: list[dict] | None = None,
+        event_sink: EventSink | None = None,
+        model_name: str = "",
     ):
         self.model = model
         self.env = env
@@ -35,6 +49,13 @@ class AgentLoop:
         self.requery = RequeryPolicy(max_requeries=max_requeries)
         self.tools = tools or []
         self.messages: list[dict] = []
+        self.event_sink = event_sink
+        self.model_name = model_name
+
+    def _emit(self, event: Event) -> None:
+        """Forward ``event`` to the sink, if one is attached."""
+        if self.event_sink is not None:
+            self.event_sink.append(event)
 
     def run(self, task: str = "") -> StepOutput:
         self.messages = [make_message("system", "You are a coding agent."), make_message("user", task)]
@@ -48,14 +69,32 @@ class AgentLoop:
                         return StepOutput(done=True, exit_status="finished")
                 except FormatError as exc:
                     exit_status = "RepeatedFormatError"
-                    if not self.requery.should_requery():
+                    recoverable = self.requery.should_requery()
+                    self._emit(
+                        ErrorEvent(
+                            source=EventSource.CONTROLLER,
+                            error_type="FormatError",
+                            recoverable=recoverable,
+                            message=str(exc),
+                        )
+                    )
+                    if not recoverable:
                         logger.error("%s after %d consecutive errors", exit_status, self.requery.n_requeries)
                         return StepOutput(done=True, exit_status=exit_status)
                     logger.warning("requery after format error: %s", exc)
                     self.messages.append(make_message("user", f"Invalid response: {exc}"))
                 except ModelError as exc:
                     exit_status = "ModelError"
-                    if not self.requery.should_requery():
+                    recoverable = self.requery.should_requery()
+                    self._emit(
+                        ErrorEvent(
+                            source=EventSource.CONTROLLER,
+                            error_type="ModelError",
+                            recoverable=recoverable,
+                            message=str(exc),
+                        )
+                    )
+                    if not recoverable:
                         logger.error("model error not recoverable: %s", exc)
                         return StepOutput(done=True, exit_status=exit_status)
                     logger.warning("requery after model error: %s", exc)
@@ -64,6 +103,14 @@ class AgentLoop:
                     logger.info("limits exceeded: %s", exc.reason)
                     return StepOutput(done=True, exit_status="LimitsExceeded")
                 except Exception as exc:  # defensive last resort: never let the loop crash
+                    self._emit(
+                        ErrorEvent(
+                            source=EventSource.CONTROLLER,
+                            error_type=type(exc).__name__,
+                            recoverable=False,
+                            message=str(exc),
+                        )
+                    )
                     logger.exception("unexpected error in agent loop: %s", exc)
                     return StepOutput(done=True, exit_status="Error")
         finally:
@@ -71,17 +118,60 @@ class AgentLoop:
 
     def step(self) -> StepOutput:
         self.budgets.check()
+        start = time.monotonic()
         response = self.model.query(self.messages, self.tools)
         self.budgets.register_step()
         self.budgets.add_tokens(response.usage.input_tokens, response.usage.output_tokens)
         self.budgets.add_cost(response.usage.cost_usd)
+        self._emit(
+            ModelCallEvent(
+                source=EventSource.MODEL,
+                model=self.model_name,
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+                cost_usd=response.usage.cost_usd,
+            )
+        )
         self.messages.append(make_message("assistant", response.thought))
         for tool_call in response.tool_calls:
-            action = self._resolve(tool_call)
+            try:
+                action = self._resolve(tool_call)
+            except FormatError as exc:
+                self._emit(
+                    InvalidToolCallEvent(
+                        source=EventSource.CONTROLLER,
+                        tool_name=tool_call.name,
+                        reason=str(exc),
+                    )
+                )
+                raise
+            action_event = ActionEvent(
+                source=EventSource.AGENT,
+                tool_name=tool_call.name,
+                tool_call_id=tool_call.id,
+                action=action,
+            )
+            self._emit(action_event)
             observation = self.env.execute(action)
+            self._emit(
+                ObservationEvent(
+                    source=EventSource.RUNTIME,
+                    tool_name=tool_call.name,
+                    tool_call_id=tool_call.id,
+                    action_id=action_event.id,
+                    observation=observation,
+                )
+            )
             self.messages.append(
                 make_message("tool", repr(observation), tool_name=tool_call.name, tool_call_id=tool_call.id)
             )
+        self._emit(
+            StepEvent(
+                source=EventSource.CONTROLLER,
+                step_index=self.budgets.steps - 1,
+                duration_ms=(time.monotonic() - start) * 1000,
+            )
+        )
         return StepOutput(done=not response.tool_calls)
 
     def _resolve(self, tool_call) -> dict:
