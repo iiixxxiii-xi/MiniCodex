@@ -97,13 +97,10 @@ class Runner:
             model_name=self.model_name,
         )
 
+        # The loop owns the env lifecycle: AgentLoop.run() stops the env in its
+        # own ``finally``, so the runner only starts it (avoiding a double stop).
         runtime.start()
-        try:
-            output = loop.run(task=task.instruction)
-        finally:
-            stop = getattr(runtime, "stop", None)
-            if callable(stop):
-                stop()
+        output = loop.run(task=task.instruction)
 
         passed, error, _ = self._run_hidden_test(task, repo_path)
         submission = self._collect_patch(repo_path)
