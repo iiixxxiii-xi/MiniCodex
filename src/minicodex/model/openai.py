@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 
-from minicodex.model.base import ModelResponse, ToolCall, Usage
+from minicodex.model.base import ModelError, ModelResponse, ToolCall, Usage
+from minicodex.model.retry import with_retry
 from minicodex.model.usage import compute_cost
+
+logger = logging.getLogger(__name__)
 
 
 def _get(obj, key, default=None):
@@ -55,14 +59,17 @@ def openai_message_to_response(
 
 
 class OpenAIModel:
-    """OpenAI adapter. The SDK client is created lazily so the class can be
-    instantiated without an API key; the live call path is exercised in the
-    Phase 10 integration smoke test, not here.
+    """OpenAI adapter with retry/backoff, error classification, and logging.
+
+    The SDK client is created lazily so the class can be instantiated without an
+    API key. The live call path is exercised in the Phase 10 integration smoke
+    test; unit tests cover the pure conversion function and failure handling.
     """
 
-    def __init__(self, model: str, *, client=None):
+    def __init__(self, model: str, *, client=None, max_attempts: int = 5):
         self.model = model
         self._client = client
+        self.max_attempts = max_attempts
         self._cancelled = False
 
     def _get_client(self):
@@ -72,13 +79,25 @@ class OpenAIModel:
             self._client = openai.OpenAI()
         return self._client
 
+    def _ensure_not_cancelled(self) -> None:
+        if self._cancelled:
+            raise ModelError(f"OpenAI model '{self.model}' request was cancelled.")
+
     def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse:
+        self._ensure_not_cancelled()
         client = self._get_client()
-        response = client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            tools=tools,
-        )
+
+        def call():
+            return client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+            )
+
+        try:
+            response = with_retry(call, max_attempts=self.max_attempts, log=logger)
+        except Exception as exc:
+            raise ModelError(f"OpenAI model '{self.model}' call failed: {exc}") from exc
         choice = response.choices[0]
         return openai_message_to_response(
             choice.message,
@@ -88,19 +107,24 @@ class OpenAIModel:
         )
 
     def stream(self, messages: list[dict], tools: list[dict]):
+        self._ensure_not_cancelled()
         client = self._get_client()
-        stream = client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            tools=tools,
-            stream=True,
-        )
-        for chunk in stream:
-            if not chunk.choices:
-                continue
-            delta = chunk.choices[0].delta
-            if delta and delta.content is not None:
-                yield ModelResponse(thought=delta.content)
+        try:
+            stream = client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+                stream=True,
+            )
+            for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                if delta is not None and delta.content is not None:
+                    yield ModelResponse(thought=delta.content)
+        except Exception as exc:
+            raise ModelError(f"OpenAI model '{self.model}' stream failed: {exc}") from exc
 
     def cancel(self) -> None:
         self._cancelled = True
+        logger.info("OpenAI model '%s' cancellation requested.", self.model)

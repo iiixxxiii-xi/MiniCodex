@@ -28,3 +28,11 @@ class Model(Protocol):
     def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse: ...
     def stream(self, messages: list[dict], tools: list[dict]) -> Iterator[ModelResponse]: ...
     def cancel(self) -> None: ...
+
+
+class ModelError(Exception):
+    """A model call failed and cannot be recovered by retrying.
+
+    Adapters raise this after classifying and retrying the underlying SDK
+    failure, wrapping it in a single readable message for the controller.
+    """

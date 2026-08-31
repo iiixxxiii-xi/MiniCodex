@@ -1,4 +1,20 @@
+import pytest
+
 from minicodex.model.anthropic import AnthropicModel, anthropic_message_to_response
+from minicodex.model.base import ModelError
+
+
+class _StatusError(Exception):
+    def __init__(self, status_code: int):
+        self.status_code = status_code
+        super().__init__(f"HTTP {status_code}")
+
+
+class _FailingClient:
+    class messages:
+        @staticmethod
+        def create(**kwargs):
+            raise _StatusError(400)
 
 
 def test_anthropic_text_and_tool_use_blocks():
@@ -31,3 +47,16 @@ def test_anthropic_missing_usage_is_zero():
 def test_anthropic_model_instantiates_without_client():
     m = AnthropicModel(model="claude-sonnet-4-5")
     assert m.model == "claude-sonnet-4-5"
+
+
+def test_anthropic_model_wraps_client_error():
+    m = AnthropicModel(model="claude-sonnet-4-5", client=_FailingClient())
+    with pytest.raises(ModelError):
+        m.query([], [])
+
+
+def test_anthropic_model_cancelled_raises():
+    m = AnthropicModel(model="claude-sonnet-4-5")
+    m.cancel()
+    with pytest.raises(ModelError):
+        m.query([], [])
