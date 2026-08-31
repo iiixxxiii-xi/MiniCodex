@@ -1,0 +1,7 @@
+{
+  "id": "smoke",
+  "repo": "smoke",
+  "instruction": "Verify the harness runs end-to-end. No change is required.",
+  "gold_patch": "",
+  "test_command": "python -c \"print('smoke ok')\""
+}
