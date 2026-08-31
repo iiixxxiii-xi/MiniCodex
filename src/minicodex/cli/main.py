@@ -8,10 +8,14 @@ API key. Real models are selected with ``--model anthropic/<id>`` or
 from __future__ import annotations
 
 import logging
+import os
+import sys
 from pathlib import Path
 
 import typer
+from dotenv import load_dotenv
 
+from minicodex.chat.runner import ChatRunner, run_chat_session
 from minicodex.eval.ablation import DEFAULT_PRESETS, run_ablation
 from minicodex.eval.report import (
     dump_ablation_results,
@@ -24,6 +28,8 @@ from minicodex.eval.task import load_task, load_tasks
 from minicodex.model.anthropic import AnthropicModel
 from minicodex.model.mock import MockModel
 from minicodex.model.openai import OpenAIModel
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -43,8 +49,14 @@ def resolve_model(model_id: str, mock: bool):
         return AnthropicModel(model=model_id.split("/", 1)[1])
     if model_id.startswith("openai/"):
         return OpenAIModel(model=model_id.split("/", 1)[1])
+    if model_id.startswith("deepseek/"):
+        return OpenAIModel(
+            model=model_id.split("/", 1)[1],
+            base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            api_key=os.environ.get("DEEPSEEK_API_KEY"),
+        )
     raise typer.BadParameter(
-        f"unrecognized model '{model_id}'; use 'mock', 'anthropic/<id>', or 'openai/<id>'"
+        f"unrecognized model '{model_id}'; use 'mock', 'anthropic/<id>', 'openai/<id>', or 'deepseek/<id>'"
     )
 
 
@@ -79,6 +91,36 @@ def run_cmd(
     )
     if result.error:
         typer.echo(f"error: {result.error}", err=True)
+
+
+@app.command("chat")
+def chat_cmd(
+    repo: str = typer.Option(".", "--repo", help="Directory the agent reads and writes."),
+    model: str = typer.Option("mock", "--model", help="Model: mock, anthropic/<id>, openai/<id>, deepseek/<id>."),
+    mock: bool = typer.Option(False, "--mock", help="Force MockModel (no API key)."),
+    step_limit: int = typer.Option(0, "--step-limit", help="Max steps per turn (0 = unlimited)."),
+    max_requeries: int = typer.Option(3, "--max-requeries", help="Retry requeries on model/format errors."),
+) -> None:
+    """Interactive chat: type natural-language instructions; the agent edits the repo."""
+    model_obj = resolve_model(model, mock)
+    try:
+        runner = ChatRunner(
+            model_obj,
+            repo,
+            step_limit=step_limit,
+            max_requeries=max_requeries,
+        )
+    except ValueError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    def _readline() -> str:
+        sys.stdout.write("> ")
+        sys.stdout.flush()
+        return input()
+
+    code = run_chat_session(runner, readline=_readline, write=typer.echo)
+    raise typer.Exit(code=code)
 
 
 @app.command("eval")

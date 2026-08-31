@@ -20,7 +20,7 @@ def _task_json(task_id: str, *, test_command: str | None = None) -> str:
 def test_help_lists_commands():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("run", "eval", "report"):
+    for command in ("run", "eval", "report", "chat"):
         assert command in result.output
 
 
