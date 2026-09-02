@@ -22,6 +22,8 @@ from minicodex.core.events import Event, EventSource, SubmissionEvent
 from minicodex.eval.metrics import RunMetrics, compute_metrics
 from minicodex.eval.task import Task
 from minicodex.runtime.local import builtin_runtime
+from minicodex.toolsource.base import ToolSource
+from minicodex.toolsource.builtin import BuiltinToolSource
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,7 @@ class Runner:
         context_policy: str = "none",
         tool_policy: str = "all",
         retry_policy: str = "fixed",
+        tool_sources: list[ToolSource] | None = None,
     ) -> None:
         self.model = model
         self.runtime = runtime
@@ -78,6 +81,7 @@ class Runner:
         self.context_policy = context_policy
         self.tool_policy = tool_policy
         self.retry_policy = retry_policy
+        self.tool_sources = tool_sources
         self._ephemeral_dirs: list[Path] = []
 
     def run(self, task: Task) -> RunResult:
@@ -91,6 +95,10 @@ class Runner:
         repo_path = self._resolve_repo_path(task)
         runtime = self.runtime or builtin_runtime(cwd=repo_path)
         sink = _ListSink()
+        filtered = self._apply_tool_policy(runtime.schemas())
+        tool_sources = None
+        if self.tool_sources:
+            tool_sources = [BuiltinToolSource(runtime, schemas=filtered), *self.tool_sources]
         loop = AgentLoop(
             model=self.model,
             env=runtime,
@@ -98,7 +106,8 @@ class Runner:
             token_limit=self.token_limit,
             cost_limit=self.cost_limit,
             max_requeries=self.max_requeries,
-            tools=self._apply_tool_policy(runtime.schemas()),
+            tools=filtered,
+            tool_sources=tool_sources,
             event_sink=sink,
             model_name=self.model_name,
             context_policy=self.context_policy,

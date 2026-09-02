@@ -91,3 +91,30 @@ def test_report_empty_dir_errors(tmp_path):
     empty.mkdir()
     result = runner.invoke(app, ["report", str(empty)])
     assert result.exit_code == 1
+
+
+def test_run_help_shows_mcp_option():
+    result = runner.invoke(app, ["run", "--help"])
+    assert result.exit_code == 0
+    assert "--mcp" in result.output
+
+
+def test_run_with_mcp_degrades_gracefully(tmp_path):
+    # An unreachable MCP server must not crash the run: the agent simply runs
+    # without the external tools.
+    task_file = tmp_path / "t.json"
+    task_file.write_text(_task_json("t1"), encoding="utf-8")
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(task_file),
+            "--mock",
+            "--mcp",
+            "definitely-not-a-real-command-xyz",
+            "--output-dir",
+            str(tmp_path / "results"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "PASS" in result.output

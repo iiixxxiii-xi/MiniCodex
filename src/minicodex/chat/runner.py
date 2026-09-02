@@ -18,6 +18,8 @@ from pathlib import Path
 from minicodex.controller.loop import AgentLoop
 from minicodex.core.events import ActionEvent, Event
 from minicodex.runtime.local import builtin_runtime
+from minicodex.toolsource.base import ToolSource
+from minicodex.toolsource.builtin import BuiltinToolSource
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,7 @@ class ChatRunner:
         step_limit: int = 0,
         max_requeries: int = 3,
         model_name: str = "",
+        tool_sources: list[ToolSource] | None = None,
     ) -> None:
         self.model = model
         self.repo = Path(repo).resolve()
@@ -62,6 +65,7 @@ class ChatRunner:
         self.step_limit = step_limit
         self.max_requeries = max_requeries
         self.model_name = model_name or getattr(model, "model", "") or type(model).__name__
+        self.tool_sources = tool_sources
 
     def run(self, instruction: str) -> ChatTurn:
         """Run one instruction and return its diff + summary.
@@ -74,12 +78,16 @@ class ChatRunner:
         try:
             runtime = builtin_runtime(cwd=self.repo)
             sink = _ListSink()
+            tool_sources = None
+            if self.tool_sources:
+                tool_sources = [BuiltinToolSource(runtime, schemas=runtime.schemas()), *self.tool_sources]
             loop = AgentLoop(
                 model=self.model,
                 env=runtime,
                 step_limit=self.step_limit,
                 max_requeries=self.max_requeries,
                 tools=runtime.schemas(),
+                tool_sources=tool_sources,
                 event_sink=sink,
                 model_name=self.model_name,
             )

@@ -21,6 +21,8 @@ from minicodex.core.events import (
 from minicodex.core.messages import make_message
 from minicodex.core.types import StepOutput
 from minicodex.model.base import ModelError, ModelResponse, Usage
+from minicodex.toolsource.base import DuplicateToolError, ToolSource
+from minicodex.toolsource.builtin import BuiltinToolSource
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,7 @@ class AgentLoop:
         cost_limit: float = 0.0,
         max_requeries: int = 3,
         tools: list[dict] | None = None,
+        tool_sources: list[ToolSource] | None = None,
         event_sink: EventSink | None = None,
         model_name: str = "",
         stream: bool = False,
@@ -61,6 +64,8 @@ class AgentLoop:
             offload_dir=offload_dir,
         )
         self.tools = tools or []
+        self._sources = self._build_sources(tool_sources)
+        self._schemas, self._source_by_name = self._index_sources(self._sources)
         self.messages: list[dict] = []
         self.event_sink = event_sink
         self.model_name = model_name
@@ -134,9 +139,9 @@ class AgentLoop:
         self.budgets.check()
         start = time.monotonic()
         if self.stream:
-            response = self._collect_stream(self.model.stream(self.messages, self.tools))
+            response = self._collect_stream(self.model.stream(self.messages, self._schemas))
         else:
-            response = self.model.query(self.messages, self.tools)
+            response = self.model.query(self.messages, self._schemas)
         self.budgets.register_step()
         self.budgets.add_tokens(response.usage.input_tokens, response.usage.output_tokens)
         self.budgets.add_cost(response.usage.cost_usd)
@@ -170,7 +175,8 @@ class AgentLoop:
                 action=action,
             )
             self._emit(action_event)
-            observation = self.env.execute(action)
+            source = self._source_for(tool_call.name)
+            observation = source.call(action["name"], action["arguments"])
             self._emit(
                 ObservationEvent(
                     source=EventSource.RUNTIME,
@@ -226,7 +232,50 @@ class AgentLoop:
             raise FormatError(f"Tool call '{tool_call.id}' has no resolvable tool name.")
         return {"name": tool_call.name, "arguments": tool_call.arguments}
 
+    def _build_sources(self, tool_sources: list[ToolSource] | None) -> list[ToolSource]:
+        """Return the pluggable tool sources for this loop.
+
+        When ``tool_sources`` is omitted the loop keeps its legacy behaviour by
+        exposing a single :class:`BuiltinToolSource` wrapping ``env`` and the
+        (possibly policy-filtered) ``tools`` schema list.
+        """
+        if tool_sources is not None:
+            return list(tool_sources)
+        return [BuiltinToolSource(self.env, schemas=self.tools)]
+
+    def _index_sources(self, sources: list[ToolSource]) -> tuple[list[dict], dict[str, ToolSource]]:
+        """Merge every source's schemas and map each tool name to its source."""
+        schemas: list[dict] = []
+        by_name: dict[str, ToolSource] = {}
+        for source in sources:
+            for schema in source.schemas():
+                schemas.append(schema)
+                name = schema.get("function", {}).get("name")
+                if not name:
+                    continue
+                if name in by_name:
+                    raise DuplicateToolError(f"tool '{name}' is provided by more than one source")
+                by_name[name] = source
+        return schemas, by_name
+
+    def _source_for(self, name: str) -> ToolSource:
+        """Resolve a tool name to its owning source, falling back to built-in."""
+        source = self._source_by_name.get(name)
+        if source is not None:
+            return source
+        for candidate in self._sources:
+            if isinstance(candidate, BuiltinToolSource):
+                return candidate
+        return self._sources[0]
+
     def _cleanup(self) -> None:
         stop = getattr(self.env, "stop", None)
         if callable(stop):
             stop()
+        for source in self._sources:
+            close = getattr(source, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception:  # noqa: BLE001 - best-effort teardown
+                    logger.warning("failed to close tool source %r", source, exc_info=True)

@@ -28,6 +28,7 @@ from minicodex.eval.task import load_task, load_tasks
 from minicodex.model.anthropic import AnthropicModel
 from minicodex.model.mock import MockModel
 from minicodex.model.openai import OpenAIModel
+from minicodex.toolsource.mcp import mcp_tool_source
 
 load_dotenv()
 
@@ -60,6 +61,13 @@ def resolve_model(model_id: str, mock: bool):
     )
 
 
+def _build_tool_sources(mcp: list[str] | None):
+    """Turn ``--mcp`` specs into tool sources (None when no servers attached)."""
+    if not mcp:
+        return None
+    return [mcp_tool_source(spec) for spec in mcp]
+
+
 @app.command("run")
 def run_cmd(
     task: str = typer.Argument(..., help="Path to a task JSON file."),
@@ -68,6 +76,11 @@ def run_cmd(
     mock: bool = typer.Option(False, "--mock", help="Force MockModel (no API key)."),
     step_limit: int = typer.Option(0, "--step-limit", help="Max steps (0 = unlimited)."),
     max_requeries: int = typer.Option(3, "--max-requeries", help="Retry requeries on errors."),
+    mcp: list[str] = typer.Option(
+        None,
+        "--mcp",
+        help="Attach an MCP server (repeatable): a URL for HTTP, else a stdio command line.",
+    ),
 ) -> None:
     """Run a single task and print its PASS/FAIL verdict + metrics."""
     try:
@@ -81,6 +94,7 @@ def run_cmd(
         output_dir=output_dir,
         step_limit=step_limit,
         max_requeries=max_requeries,
+        tool_sources=_build_tool_sources(mcp),
     )
     result = runner.run(task_obj)
     verdict = "PASS" if result.passed else "FAIL"
@@ -100,6 +114,11 @@ def chat_cmd(
     mock: bool = typer.Option(False, "--mock", help="Force MockModel (no API key)."),
     step_limit: int = typer.Option(0, "--step-limit", help="Max steps per turn (0 = unlimited)."),
     max_requeries: int = typer.Option(3, "--max-requeries", help="Retry requeries on model/format errors."),
+    mcp: list[str] = typer.Option(
+        None,
+        "--mcp",
+        help="Attach an MCP server (repeatable): a URL for HTTP, else a stdio command line.",
+    ),
 ) -> None:
     """Interactive chat: type natural-language instructions; the agent edits the repo."""
     model_obj = resolve_model(model, mock)
@@ -109,6 +128,7 @@ def chat_cmd(
             repo,
             step_limit=step_limit,
             max_requeries=max_requeries,
+            tool_sources=_build_tool_sources(mcp),
         )
     except ValueError as exc:
         typer.echo(f"error: {exc}", err=True)
