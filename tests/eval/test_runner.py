@@ -110,3 +110,36 @@ def test_runner_hidden_test_decodes_non_ascii_utf8_output(tmp_path):
     assert passed is True
     assert error == ""
     assert expected in output
+
+
+def _write_demo_repo(root) -> None:
+    (root / "demo.py").write_text("def add(a, b):\n    return a - b\n", encoding="utf-8")
+    (root / "conftest.py").write_text(
+        "import os\nimport sys\n\nsys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))\n",
+        encoding="utf-8",
+    )
+    tests = root / "tests"
+    tests.mkdir()
+    (tests / "test_demo.py").write_text(
+        "import demo\n\n\ndef test_add():\n    assert demo.add(2, 3) == 5\n",
+        encoding="utf-8",
+    )
+
+
+def test_runner_uses_fail_to_pass_matrix_over_test_command(tmp_path):
+    # A task with a fail_to_pass matrix must be verified via the matrix even
+    # when a (bogus) test_command is also present.
+    _write_demo_repo(tmp_path)
+    task = Task(
+        id="t9",
+        repo="demo",
+        instruction="fix add",
+        repo_path=str(tmp_path),
+        fail_to_pass=["tests/test_demo.py::test_add"],
+        pass_to_pass=[],
+        test_command="exit 0",  # would pass, but must be ignored
+    )
+    runner = Runner(_finishing_model())
+    passed, error, _ = runner._run_hidden_test(task, tmp_path)
+    assert passed is False
+    assert "fail_to_pass" in error

@@ -14,6 +14,30 @@ def test_task_defaults():
     assert t.repo_path is None
     assert t.base_commit == ""
     assert t.metadata == {}
+    assert t.fail_to_pass == []
+    assert t.pass_to_pass == []
+
+
+def test_task_fail_pass_roundtrip_from_dict():
+    t = Task.from_dict(
+        {
+            "id": "t1",
+            "repo": "demo",
+            "instruction": "fix the bug",
+            "fail_to_pass": ["tests/test_demo.py::test_a", "tests/test_demo.py::test_b"],
+            "pass_to_pass": ["tests/test_demo.py::test_c"],
+        }
+    )
+    assert t.fail_to_pass == ["tests/test_demo.py::test_a", "tests/test_demo.py::test_b"]
+    assert t.pass_to_pass == ["tests/test_demo.py::test_c"]
+
+
+def test_task_fail_pass_lists_are_isolated():
+    # Mutating one instance's list must not leak into another instance.
+    t1 = Task.from_dict({"id": "t1", "repo": "demo", "instruction": "x", "fail_to_pass": ["a"]})
+    t2 = Task.from_dict({"id": "t2", "repo": "demo", "instruction": "y"})
+    t1.fail_to_pass.append("b")
+    assert t2.fail_to_pass == []
 
 
 def test_task_roundtrip_from_dict():

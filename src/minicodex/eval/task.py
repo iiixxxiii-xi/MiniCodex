@@ -30,6 +30,13 @@ class Task(BaseModel):
     repo_path: str | None = None
     base_commit: str = ""
     metadata: dict = Field(default_factory=dict)
+    # SWE-bench style test matrices. ``fail_to_pass`` are tests that fail on the
+    # buggy baseline and must pass after the fix; ``pass_to_pass`` are regression
+    # tests that must pass both before and after the fix. When either list is
+    # populated the runner verifies them instead of ``test_command`` (which is
+    # kept for backward compatibility with legacy single-command tasks).
+    fail_to_pass: list[str] = Field(default_factory=list)
+    pass_to_pass: list[str] = Field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict) -> "Task":

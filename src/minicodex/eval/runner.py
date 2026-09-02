@@ -21,6 +21,7 @@ from minicodex.controller.loop import AgentLoop
 from minicodex.core.events import Event, EventSource, SubmissionEvent
 from minicodex.eval.metrics import RunMetrics, compute_metrics
 from minicodex.eval.task import Task
+from minicodex.eval.verification import verify_workspace
 from minicodex.runtime.local import builtin_runtime
 from minicodex.toolsource.base import ToolSource
 from minicodex.toolsource.builtin import BuiltinToolSource
@@ -166,7 +167,14 @@ class Runner:
         return None
 
     def _run_hidden_test(self, task: Task, repo_path: Path) -> tuple[bool, str, str]:
-        """Run the task's hidden test command; ``returncode == 0`` means pass."""
+        """Decide PASS/FAIL for the patched workspace.
+
+        When ``fail_to_pass``/``pass_to_pass`` are populated the SWE-bench style
+        test matrix is used: every ``fail_to_pass`` AND every ``pass_to_pass``
+        test must pass. Otherwise the legacy ``test_command`` (exit 0) is used.
+        """
+        if task.fail_to_pass or task.pass_to_pass:
+            return verify_workspace(task, repo_path, timeout=self.hidden_test_timeout)
         if not task.test_command:
             return False, "task has no test_command; cannot determine PASS/FAIL", ""
         try:

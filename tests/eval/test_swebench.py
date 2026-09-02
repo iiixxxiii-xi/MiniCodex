@@ -28,8 +28,18 @@ def test_to_task_maps_fields():
     assert task.instruction == "Fix the coordinate transform bug."
     assert task.gold_patch == "diff --git a/x b/x"
     assert task.base_commit == "abc123"
-    assert task.metadata["FAIL_TO_PASS"] == ["test_coord[0]"]
-    assert task.metadata["PASS_TO_PASS"] == ["test_coord[1]"]
+    assert task.fail_to_pass == ["test_coord[0]"]
+    assert task.pass_to_pass == ["test_coord[1]"]
+    # FAIL_TO_PASS / PASS_TO_PASS are mapped onto the first-class fields and
+    # must not linger in metadata.
+    assert "FAIL_TO_PASS" not in task.metadata
+    assert "PASS_TO_PASS" not in task.metadata
+
+
+def test_to_task_defaults_missing_fail_pass():
+    task = to_task({"id": "custom-1", "repo": "a/b", "instruction": "x"})
+    assert task.fail_to_pass == []
+    assert task.pass_to_pass == []
 
 
 def test_to_task_requires_instance_id():

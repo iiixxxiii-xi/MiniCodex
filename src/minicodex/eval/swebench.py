@@ -27,6 +27,8 @@ _KNOWN_FIELDS = {
     "gold_patch",
     "test_command",
     "base_commit",
+    "FAIL_TO_PASS",
+    "PASS_TO_PASS",
 }
 
 
@@ -45,6 +47,8 @@ def to_task(record: dict) -> Task:
         gold_patch=record.get("patch") or record.get("gold_patch", ""),
         test_command=record.get("test_command", ""),
         base_commit=record.get("base_commit", ""),
+        fail_to_pass=list(record.get("FAIL_TO_PASS") or []),
+        pass_to_pass=list(record.get("PASS_TO_PASS") or []),
         metadata={k: v for k, v in record.items() if k not in _KNOWN_FIELDS},
     )
 
