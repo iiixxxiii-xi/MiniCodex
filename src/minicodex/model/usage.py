@@ -10,6 +10,11 @@ PRICING_USD_PER_1M: dict[str, tuple[float, float]] = {
     "claude-haiku-4-5": (1.0, 5.0),
     "gpt-4o": (2.5, 10.0),
     "gpt-4o-mini": (0.15, 0.60),
+    # DeepSeek list prices (USD per 1M tokens) as (input, output).
+    "deepseek-chat": (0.28, 0.42),
+    "deepseek-reasoner": (0.55, 2.19),
+    "deepseek-v4-flash": (0.28, 0.42),
+    "deepseek-v4-pro": (1.10, 1.68),
 }
 
 DEFAULT_PRICING: tuple[float, float] = (3.0, 15.0)
