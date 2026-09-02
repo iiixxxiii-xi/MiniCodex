@@ -29,13 +29,38 @@ def test_default_presets_cover_minimal_and_full():
     assert DEFAULT_PRESETS["full"].max_requeries > 0
 
 
+def test_default_presets_expose_independent_dimensions():
+    # context / retry / tool policies are independently adjustable, not just
+    # the two minimal/full presets.
+    assert DEFAULT_PRESETS["full"].context_policy == "none"
+    assert DEFAULT_PRESETS["full"].retry_policy == "fixed"
+    context_presets = [
+        name for name, p in DEFAULT_PRESETS.items() if p.context_policy != "none"
+    ]
+    retry_presets = [
+        name for name, p in DEFAULT_PRESETS.items() if p.retry_policy != "fixed"
+    ]
+    tool_presets = [
+        name for name, p in DEFAULT_PRESETS.items() if p.tool_policy != "all"
+    ]
+    assert context_presets
+    assert retry_presets
+    assert tool_presets
+    # the three dimensions vary independently across the preset set
+    assert "sliding" in DEFAULT_PRESETS
+    assert "truncation" in DEFAULT_PRESETS
+    assert "compaction" in DEFAULT_PRESETS
+    assert "backoff" in DEFAULT_PRESETS
+    assert "no_retry" in DEFAULT_PRESETS
+
+
 def test_run_ablation_produces_one_result_per_preset(tmp_path):
     tasks = [_make_task("t1", tmp_path), _make_task("t2", tmp_path)]
     model = MockModel(script=[{"tool_calls": []}])
     results = run_ablation(tasks, model, presets=list(DEFAULT_PRESETS.values()))
 
-    assert len(results) == 2
-    assert {r.preset for r in results} == {"minimal", "full"}
+    assert len(results) == len(DEFAULT_PRESETS)
+    assert {r.preset for r in results} == set(DEFAULT_PRESETS)
     for r in results:
         assert isinstance(r, AblationResult)
         assert len(r.results) == 2

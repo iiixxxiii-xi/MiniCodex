@@ -5,6 +5,7 @@ import time
 
 from minicodex.controller.budgets import BudgetTracker
 from minicodex.controller.exceptions import FormatError, LimitsExceeded
+from minicodex.controller.policies.context import ContextPolicy
 from minicodex.controller.policies.retry import RequeryPolicy
 from minicodex.core.events import (
     ActionEvent,
@@ -19,7 +20,7 @@ from minicodex.core.events import (
 )
 from minicodex.core.messages import make_message
 from minicodex.core.types import StepOutput
-from minicodex.model.base import ModelError
+from minicodex.model.base import ModelError, ModelResponse, Usage
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +43,28 @@ class AgentLoop:
         tools: list[dict] | None = None,
         event_sink: EventSink | None = None,
         model_name: str = "",
+        stream: bool = False,
+        context_policy: str = "none",
+        context_window: int = 20,
+        truncation_limit: int = 8000,
+        offload_dir: str | None = None,
+        retry_policy: str = "fixed",
     ):
         self.model = model
         self.env = env
         self.budgets = BudgetTracker(step_limit=step_limit, token_limit=token_limit, cost_limit=cost_limit)
-        self.requery = RequeryPolicy(max_requeries=max_requeries)
+        self.requery = RequeryPolicy(max_requeries=max_requeries, policy=retry_policy)
+        self.context_policy = ContextPolicy(
+            name=context_policy,
+            window=context_window,
+            max_len=truncation_limit,
+            offload_dir=offload_dir,
+        )
         self.tools = tools or []
         self.messages: list[dict] = []
         self.event_sink = event_sink
         self.model_name = model_name
+        self.stream = stream
 
     def _emit(self, event: Event) -> None:
         """Forward ``event`` to the sink, if one is attached."""
@@ -119,7 +133,10 @@ class AgentLoop:
     def step(self) -> StepOutput:
         self.budgets.check()
         start = time.monotonic()
-        response = self.model.query(self.messages, self.tools)
+        if self.stream:
+            response = self._collect_stream(self.model.stream(self.messages, self.tools))
+        else:
+            response = self.model.query(self.messages, self.tools)
         self.budgets.register_step()
         self.budgets.add_tokens(response.usage.input_tokens, response.usage.output_tokens)
         self.budgets.add_cost(response.usage.cost_usd)
@@ -163,9 +180,11 @@ class AgentLoop:
                     observation=observation,
                 )
             )
+            observation_text = self.context_policy.process_observation(repr(observation))
             self.messages.append(
-                make_message("tool", repr(observation), tool_name=tool_call.name, tool_call_id=tool_call.id)
+                make_message("tool", observation_text, tool_name=tool_call.name, tool_call_id=tool_call.id)
             )
+        self.messages = self.context_policy.process_messages(self.messages)
         self._emit(
             StepEvent(
                 source=EventSource.CONTROLLER,
@@ -174,6 +193,33 @@ class AgentLoop:
             )
         )
         return StepOutput(done=not response.tool_calls)
+
+    def _collect_stream(self, stream) -> ModelResponse:
+        """Merge incremental stream chunks into one final :class:`ModelResponse`.
+
+        ``thought`` accumulates across chunks (streaming text deltas), while
+        ``tool_calls`` and ``usage`` are taken from the last chunk that carries
+        them (adapters emit the complete message in a single final chunk).
+        """
+        thought_parts: list[str] = []
+        tool_calls = []
+        usage = Usage()
+        stop_reason = ""
+        for chunk in stream:
+            if chunk.thought:
+                thought_parts.append(chunk.thought)
+            if chunk.tool_calls:
+                tool_calls = list(chunk.tool_calls)
+            if chunk.usage and (chunk.usage.input_tokens or chunk.usage.output_tokens):
+                usage = chunk.usage
+            if chunk.stop_reason:
+                stop_reason = chunk.stop_reason
+        return ModelResponse(
+            thought="".join(thought_parts),
+            tool_calls=tool_calls,
+            usage=usage,
+            stop_reason=stop_reason,
+        )
 
     def _resolve(self, tool_call) -> dict:
         if not tool_call.name:

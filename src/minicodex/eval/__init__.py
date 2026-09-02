@@ -6,6 +6,11 @@ from minicodex.eval.ablation import (
     DEFAULT_PRESETS,
     run_ablation,
 )
+from minicodex.eval.failures import (
+    FailureCategory,
+    FailureCollection,
+    collect_failures,
+)
 from minicodex.eval.metrics import (
     BatchMetrics,
     RunMetrics,
@@ -39,6 +44,9 @@ __all__ = [
     "AblationResult",
     "DEFAULT_PRESETS",
     "run_ablation",
+    "FailureCategory",
+    "FailureCollection",
+    "collect_failures",
     "render_markdown",
     "render_csv",
     "write_report",

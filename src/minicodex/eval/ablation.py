@@ -18,11 +18,19 @@ from minicodex.eval.task import Task
 
 
 class AblationPreset(BaseModel):
-    """A named policy combination to compare."""
+    """A named policy combination to compare.
+
+    Each dimension is independently adjustable, so presets can isolate the
+    effect of one knob at a time (context policy, tool policy, retry policy,
+    step budget) rather than only the two ``minimal``/``full`` extremes.
+    """
 
     name: str
     step_limit: int = 0
     max_requeries: int = 3
+    context_policy: str = "none"
+    tool_policy: str = "all"
+    retry_policy: str = "fixed"
     description: str = ""
 
 
@@ -39,13 +47,58 @@ DEFAULT_PRESETS: dict[str, AblationPreset] = {
         name="minimal",
         step_limit=5,
         max_requeries=0,
+        retry_policy="none",
         description="tight step budget, no retry requery",
     ),
     "full": AblationPreset(
         name="full",
         step_limit=0,
         max_requeries=3,
-        description="unbounded steps, retry requery enabled",
+        retry_policy="fixed",
+        description="unbounded steps, fixed retry requery",
+    ),
+    # Single-dimension ablations — each varies exactly one knob against "full".
+    "no_retry": AblationPreset(
+        name="no_retry",
+        step_limit=0,
+        max_requeries=3,
+        retry_policy="none",
+        description="ablate retry: no requery on errors",
+    ),
+    "backoff": AblationPreset(
+        name="backoff",
+        step_limit=0,
+        max_requeries=3,
+        retry_policy="backoff",
+        description="ablate retry: exponential backoff requery",
+    ),
+    "sliding": AblationPreset(
+        name="sliding",
+        step_limit=0,
+        max_requeries=3,
+        context_policy="sliding",
+        description="ablate context: sliding-window trimming",
+    ),
+    "truncation": AblationPreset(
+        name="truncation",
+        step_limit=0,
+        max_requeries=3,
+        context_policy="truncation",
+        description="ablate context: observation truncation",
+    ),
+    "compaction": AblationPreset(
+        name="compaction",
+        step_limit=0,
+        max_requeries=3,
+        context_policy="compaction",
+        description="ablate context: summarize-and-offload compaction",
+    ),
+    "no_test_runner": AblationPreset(
+        name="no_test_runner",
+        step_limit=0,
+        max_requeries=3,
+        tool_policy="no_test_runner",
+        description="ablate tools: hide the test_runner tool",
     ),
 }
 
@@ -72,6 +125,9 @@ def run_ablation(
             output_dir=preset_dir,
             step_limit=preset.step_limit,
             max_requeries=preset.max_requeries,
+            context_policy=preset.context_policy,
+            tool_policy=preset.tool_policy,
+            retry_policy=preset.retry_policy,
         )
         run_results = [runner.run(task) for task in tasks]
         results.append(

@@ -62,6 +62,9 @@ class Runner:
         max_requeries: int = 3,
         model_name: str = "",
         hidden_test_timeout: float = 120.0,
+        context_policy: str = "none",
+        tool_policy: str = "all",
+        retry_policy: str = "fixed",
     ) -> None:
         self.model = model
         self.runtime = runtime
@@ -72,6 +75,9 @@ class Runner:
         self.max_requeries = max_requeries
         self.model_name = model_name or getattr(model, "model", "") or type(model).__name__
         self.hidden_test_timeout = hidden_test_timeout
+        self.context_policy = context_policy
+        self.tool_policy = tool_policy
+        self.retry_policy = retry_policy
         self._ephemeral_dirs: list[Path] = []
 
     def run(self, task: Task) -> RunResult:
@@ -92,9 +98,12 @@ class Runner:
             token_limit=self.token_limit,
             cost_limit=self.cost_limit,
             max_requeries=self.max_requeries,
-            tools=runtime.schemas(),
+            tools=self._apply_tool_policy(runtime.schemas()),
             event_sink=sink,
             model_name=self.model_name,
+            context_policy=self.context_policy,
+            retry_policy=self.retry_policy,
+            offload_dir=self._offload_dir(),
         )
 
         # The loop owns the env lifecycle: AgentLoop.run() stops the env in its
@@ -134,6 +143,18 @@ class Runner:
         path = Path(tempfile.mkdtemp(prefix=f"minicodex-{task.id}-"))
         self._ephemeral_dirs.append(path)
         return path
+
+    def _apply_tool_policy(self, schemas: list[dict]) -> list[dict]:
+        """Filter the function schemas exposed to the model by ``tool_policy``."""
+        if self.tool_policy == "no_test_runner":
+            return [s for s in schemas if s.get("function", {}).get("name") != "test_runner"]
+        return schemas
+
+    def _offload_dir(self) -> Path | None:
+        """Offload directory for compaction (None lets the loop fall back to a temp dir)."""
+        if self.context_policy == "compaction" and self.output_dir is not None:
+            return self.output_dir / "compaction"
+        return None
 
     def _run_hidden_test(self, task: Task, repo_path: Path) -> tuple[bool, str, str]:
         """Run the task's hidden test command; ``returncode == 0`` means pass."""
