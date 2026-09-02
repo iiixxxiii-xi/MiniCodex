@@ -1,0 +1,23 @@
+{
+  "id": "ds-09",
+  "repo": "ds",
+  "instruction": "Fix `binary_tree_height` so a single-node tree has height 1 (the current code under-counts by one because it drops the leading 1).",
+  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -113,4 +113,4 @@\n     \"\"\"Return the height of a binary tree (0 for an empty tree).\"\"\"\n     if root is None:\n         return 0\n-    return max(binary_tree_height(root.left), binary_tree_height(root.right))\n+    return 1 + max(binary_tree_height(root.left), binary_tree_height(root.right))\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-09",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "data-structure",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_ds.py::test_binary_tree_height_basic",
+    "tests/test_ds.py::test_binary_tree_height_single"
+  ],
+  "pass_to_pass": [
+    "tests/test_ds.py::test_stack_push_pop",
+    "tests/test_ds.py::test_linked_list_len_basic",
+    "tests/test_ds.py::test_binary_tree_height_empty"
+  ]
+}

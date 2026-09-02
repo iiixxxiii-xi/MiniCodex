@@ -3,11 +3,21 @@
   "repo": "textutils",
   "instruction": "Fix `truncate` so it only appends '...' when the string is actually longer than n. It currently appends the ellipsis unconditionally.",
   "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -22,7 +22,7 @@\n \n def truncate(s, n):\n     \"\"\"Truncate ``s`` to ``n`` characters, appending '...' when truncated.\"\"\"\n-    return s[:n] + \"...\"\n+    return s if len(s) <= n else s[:n] + \"...\"\n \n \n def slugify(s):\n",
-  "test_command": "python -m pytest tests/test_textutils.py::test_truncate -q",
-  "repo_path": "tasks/repos/textutils",
+  "test_command": "",
+  "repo_path": "tasks/repos/textutils/textutils-04",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "string",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_textutils.py::test_truncate_short",
+    "tests/test_textutils.py::test_truncate_exact"
+  ],
+  "pass_to_pass": [
+    "tests/test_textutils.py::test_capitalize_words_simple",
+    "tests/test_textutils.py::test_slugify_simple",
+    "tests/test_textutils.py::test_common_prefix_basic"
+  ]
 }

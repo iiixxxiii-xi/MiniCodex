@@ -1,0 +1,24 @@
+{
+  "id": "parselib-08",
+  "repo": "parselib",
+  "instruction": "Fix `split_words` so it splits on any whitespace run (the current code splits on a single space, leaving empty tokens for multiple spaces).",
+  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -76,4 +76,4 @@\n \n def split_words(text):\n     \"\"\"Split ``text`` on whitespace into words.\"\"\"\n-    return text.split(\" \")\n+    return text.split()\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/parselib/parselib-08",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "string",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_parselib.py::test_split_words_multiple_spaces",
+    "tests/test_parselib.py::test_split_words_leading"
+  ],
+  "pass_to_pass": [
+    "tests/test_parselib.py::test_parse_json_object",
+    "tests/test_parselib.py::test_get_field_present",
+    "tests/test_parselib.py::test_parse_csv_basic",
+    "tests/test_parselib.py::test_split_words_basic"
+  ]
+}

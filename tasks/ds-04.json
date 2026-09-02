@@ -1,0 +1,23 @@
+{
+  "id": "ds-04",
+  "repo": "ds",
+  "instruction": "Fix `stack_pop` so it raises `IndexError` on an empty stack instead of silently returning None.",
+  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -56,7 +56,7 @@\n def stack_pop(stack):\n     \"\"\"Pop the top of ``stack``, raising IndexError when empty.\"\"\"\n     if not stack:\n-        return None\n+        raise IndexError(\"pop from empty stack\")\n     return stack.pop()\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-04",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "data-structure",
+    "estimated_lines": 2
+  },
+  "fail_to_pass": [
+    "tests/test_ds.py::test_stack_pop_empty_raises",
+    "tests/test_ds.py::test_stack_pop_empty_message"
+  ],
+  "pass_to_pass": [
+    "tests/test_ds.py::test_linked_list_len_basic",
+    "tests/test_ds.py::test_linked_list_reverse_single",
+    "tests/test_ds.py::test_stack_push_pop"
+  ]
+}

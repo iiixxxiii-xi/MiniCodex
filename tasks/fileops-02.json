@@ -2,12 +2,22 @@
   "id": "fileops-02",
   "repo": "fileops",
   "instruction": "Fix `count_lines` so a trailing newline does not produce an extra phantom line count.",
-  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -12,7 +12,7 @@\n def count_lines(path):\n     \"\"\"Count the number of lines in a text file.\"\"\"\n     with open(path, encoding=\"utf-8\") as f:\n-        return len(f.read().split(\"\\n\"))\n+        return len(f.read().splitlines())\n \n \n def tail(path, n):\n",
-  "test_command": "python -m pytest tests/test_fileops.py::test_count_lines -q",
-  "repo_path": "tasks/repos/fileops",
+  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -13,7 +13,7 @@\n def count_lines(path):\n     \"\"\"Count the number of lines in a text file.\"\"\"\n     with open(path, encoding=\"utf-8\") as f:\n-        return len(f.read().split(\"\\n\"))\n+        return len(f.read().splitlines())\n \n \n def tail(path, n):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/fileops/fileops-02",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "file-io",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_fileops.py::test_count_lines_basic",
+    "tests/test_fileops.py::test_count_lines_empty"
+  ],
+  "pass_to_pass": [
+    "tests/test_fileops.py::test_read_lines_basic",
+    "tests/test_fileops.py::test_tail_basic",
+    "tests/test_fileops.py::test_parse_kv_basic"
+  ]
 }

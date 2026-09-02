@@ -2,12 +2,22 @@
   "id": "numstats-02",
   "repo": "numstats",
   "instruction": "Fix `median` so it returns the average of the two middle elements for even-length inputs instead of only the upper-middle element.",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -10,6 +10,8 @@\n     \"\"\"Return the median of ``values``.\"\"\"\n     s = sorted(values)\n     n = len(s)\n+    if n % 2 == 0:\n+        return (s[n // 2 - 1] + s[n // 2]) / 2\n     return s[n // 2]\n \n \n",
-  "test_command": "python -m pytest tests/test_numstats.py::test_median -q",
-  "repo_path": "tasks/repos/numstats",
+  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -12,6 +12,8 @@\n     \"\"\"Return the median of ``values``.\"\"\"\n     s = sorted(values)\n     n = len(s)\n+    if n % 2 == 0:\n+        return (s[n // 2 - 1] + s[n // 2]) / 2\n     return s[n // 2]\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/numstats/numstats-02",
+  "base_commit": "",
   "metadata": {
     "difficulty": "medium",
     "category": "numeric",
     "estimated_lines": 3
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_numstats.py::test_median_even",
+    "tests/test_numstats.py::test_median_even_two"
+  ],
+  "pass_to_pass": [
+    "tests/test_numstats.py::test_mean_basic",
+    "tests/test_numstats.py::test_variance_basic",
+    "tests/test_numstats.py::test_is_prime_two"
+  ]
 }

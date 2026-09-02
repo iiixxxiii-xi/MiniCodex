@@ -1,0 +1,24 @@
+{
+  "id": "parselib-05",
+  "repo": "parselib",
+  "instruction": "Fix `parse_ini` so keys appearing before any [section] are retained (the current code silently drops them).",
+  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -56,6 +56,8 @@\n         key, value = line.split(\"=\", 1)\n         if current is not None:\n             result[current][key.strip()] = value.strip()\n+        else:\n+            result[key.strip()] = value.strip()\n     return result\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/parselib/parselib-05",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "parsing",
+    "estimated_lines": 3
+  },
+  "fail_to_pass": [
+    "tests/test_parselib.py::test_parse_ini_top_level",
+    "tests/test_parselib.py::test_parse_ini_top_level_only"
+  ],
+  "pass_to_pass": [
+    "tests/test_parselib.py::test_parse_json_object",
+    "tests/test_parselib.py::test_parse_kv_basic",
+    "tests/test_parselib.py::test_get_field_present",
+    "tests/test_parselib.py::test_parse_ini_sections"
+  ]
+}

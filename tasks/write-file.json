@@ -1,7 +1,0 @@
-{
-  "id": "write-file",
-  "repo": "write-file",
-  "instruction": "Create a file named answer.txt in the workspace root.",
-  "gold_patch": "create answer.txt",
-  "test_command": "python -c \"import os,sys; sys.exit(0 if os.path.exists('answer.txt') else 1)\""
-}

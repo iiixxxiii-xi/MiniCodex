@@ -1,0 +1,24 @@
+{
+  "id": "parselib-06",
+  "repo": "parselib",
+  "instruction": "Fix `sum_column` so it sums floats (the current code coerces with int() and crashes on decimals).",
+  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -65,7 +65,7 @@\n     \"\"\"Sum the numeric values in column ``idx`` of ``rows``.\"\"\"\n     total = 0.0\n     for row in rows:\n-        total += int(row[idx])\n+        total += float(row[idx])\n     return total\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/parselib/parselib-06",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "parsing",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_parselib.py::test_sum_column_floats",
+    "tests/test_parselib.py::test_sum_column_mixed"
+  ],
+  "pass_to_pass": [
+    "tests/test_parselib.py::test_parse_json_object",
+    "tests/test_parselib.py::test_get_field_present",
+    "tests/test_parselib.py::test_split_words_basic",
+    "tests/test_parselib.py::test_sum_column_basic"
+  ]
+}

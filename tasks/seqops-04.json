@@ -2,12 +2,23 @@
   "id": "seqops-04",
   "repo": "seqops",
   "instruction": "Fix `rotate` so it normalises k with a modulo, so k greater than the sequence length rotates correctly.",
-  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -36,6 +36,7 @@\n \n def rotate(seq, k):\n     \"\"\"Rotate ``seq`` to the left by ``k`` positions.\"\"\"\n+    k = k % len(seq)\n     return seq[k:] + seq[:k]\n \n \n",
-  "test_command": "python -m pytest tests/test_seqops.py::test_rotate -q",
-  "repo_path": "tasks/repos/seqops",
+  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -44,6 +44,7 @@\n \n def rotate(seq, k):\n     \"\"\"Rotate ``seq`` to the left by ``k`` positions.\"\"\"\n+    k = k % len(seq)\n     return seq[k:] + seq[:k]\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/seqops/seqops-04",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "algorithm",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_seqops.py::test_rotate_wraparound",
+    "tests/test_seqops.py::test_rotate_wraparound_two"
+  ],
+  "pass_to_pass": [
+    "tests/test_seqops.py::test_merge_sorted_interleaved",
+    "tests/test_seqops.py::test_partition_basic",
+    "tests/test_seqops.py::test_chunk_partial",
+    "tests/test_seqops.py::test_rotate_basic"
+  ]
 }

@@ -2,12 +2,22 @@
   "id": "numstats-10",
   "repo": "numstats",
   "instruction": "Fix `gcd` so it returns the greatest common divisor (`a`) instead of always returning the remainder (`b`), which ends up as zero.",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -64,4 +64,4 @@\n     \"\"\"Return the greatest common divisor of ``a`` and ``b``.\"\"\"\n     while b:\n         a, b = b, a % b\n-    return b\n+    return a\n",
-  "test_command": "python -m pytest tests/test_numstats.py::test_gcd -q",
-  "repo_path": "tasks/repos/numstats",
+  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -70,4 +70,4 @@\n     \"\"\"Return the greatest common divisor of ``a`` and ``b``.\"\"\"\n     while b:\n         a, b = b, a % b\n-    return b\n+    return a\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/numstats/numstats-10",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "numeric",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_numstats.py::test_gcd_basic",
+    "tests/test_numstats.py::test_gcd_with_zero"
+  ],
+  "pass_to_pass": [
+    "tests/test_numstats.py::test_mean_basic",
+    "tests/test_numstats.py::test_median_odd",
+    "tests/test_numstats.py::test_is_prime_two"
+  ]
 }

@@ -2,12 +2,23 @@
   "id": "rpncalc-02",
   "repo": "rpncalc",
   "instruction": "Fix `parse_number` so it parses floats (e.g. \"3.5\") instead of only integers.",
-  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -8,7 +8,7 @@\n \n def parse_number(token):\n     \"\"\"Parse ``token`` into an int or float.\"\"\"\n-    return int(token)\n+    return float(token) if \".\" in token else int(token)\n \n \n def apply(op, a, b):\n",
-  "test_command": "python -m pytest tests/test_rpncalc.py::test_parse_number -q",
-  "repo_path": "tasks/repos/rpncalc",
+  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -12,7 +12,7 @@\n \n def parse_number(token):\n     \"\"\"Parse ``token`` into an int or float.\"\"\"\n-    return int(token)\n+    return float(token) if \".\" in token else int(token)\n \n \n def apply(op, a, b):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/rpncalc/rpncalc-02",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "parsing",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_rpncalc.py::test_parse_number_float",
+    "tests/test_rpncalc.py::test_parse_number_negative_float"
+  ],
+  "pass_to_pass": [
+    "tests/test_rpncalc.py::test_tokenize_single",
+    "tests/test_rpncalc.py::test_safe_divide_basic",
+    "tests/test_rpncalc.py::test_format_number_int",
+    "tests/test_rpncalc.py::test_parse_number_int"
+  ]
 }

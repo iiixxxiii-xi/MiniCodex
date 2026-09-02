@@ -1,0 +1,24 @@
+{
+  "id": "codec-08",
+  "repo": "codec",
+  "instruction": "Fix `normalize` so it returns the NFC-normalised form (the current code returns the input unchanged, so decomposed forms are not composed).",
+  "gold_patch": "diff --git a/codec.py b/codec.py\n--- a/codec.py\n+++ b/codec.py\n@@ -47,4 +47,4 @@\n \n def normalize(text):\n     \"\"\"Return the NFC-normalised form of ``text``.\"\"\"\n-    return text\n+    return unicodedata.normalize(\"NFC\", text)\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/codec/codec-08",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "encoding",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_codec.py::test_normalize_composed",
+    "tests/test_codec.py::test_normalize_composed_two"
+  ],
+  "pass_to_pass": [
+    "tests/test_codec.py::test_char_count_ascii",
+    "tests/test_codec.py::test_hex_encode_basic",
+    "tests/test_codec.py::test_base64_encode_basic",
+    "tests/test_codec.py::test_normalize_already_nfc"
+  ]
+}

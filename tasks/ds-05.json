@@ -1,0 +1,23 @@
+{
+  "id": "ds-05",
+  "repo": "ds",
+  "instruction": "Fix `stack_peek` so it returns the top element (the last one) instead of the bottom.",
+  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -64,7 +64,7 @@\n     \"\"\"Return the top of ``stack`` without removing it, raising IndexError when empty.\"\"\"\n     if not stack:\n         raise IndexError(\"peek from empty stack\")\n-    return stack[0]\n+    return stack[-1]\n \n \n class RingBuffer:\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-05",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "data-structure",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_ds.py::test_stack_peek_basic",
+    "tests/test_ds.py::test_stack_peek_two"
+  ],
+  "pass_to_pass": [
+    "tests/test_ds.py::test_linked_list_len_basic",
+    "tests/test_ds.py::test_stack_push_pop",
+    "tests/test_ds.py::test_stack_peek_empty_raises"
+  ]
+}

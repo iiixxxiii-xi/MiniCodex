@@ -2,12 +2,22 @@
   "id": "numstats-07",
   "repo": "numstats",
   "instruction": "Fix `clamp` so it returns the lower bound when the value is below the range and the upper bound when it is above (the two returns are currently swapped).",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -39,9 +39,9 @@\n def clamp(value, lo, hi):\n     \"\"\"Clamp ``value`` to the inclusive range [lo, hi].\"\"\"\n     if value < lo:\n+        return lo\n+    if value > hi:\n         return hi\n-    if value > hi:\n-        return lo\n     return value\n \n \n",
-  "test_command": "python -m pytest tests/test_numstats.py::test_clamp -q",
-  "repo_path": "tasks/repos/numstats",
+  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -43,9 +43,9 @@\n def clamp(value, lo, hi):\n     \"\"\"Clamp ``value`` to the inclusive range [lo, hi].\"\"\"\n     if value < lo:\n+        return lo\n+    if value > hi:\n         return hi\n-    if value > hi:\n-        return lo\n     return value\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/numstats/numstats-07",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "numeric",
     "estimated_lines": 2
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_numstats.py::test_clamp_low",
+    "tests/test_numstats.py::test_clamp_high"
+  ],
+  "pass_to_pass": [
+    "tests/test_numstats.py::test_mean_basic",
+    "tests/test_numstats.py::test_variance_basic",
+    "tests/test_numstats.py::test_gcd_basic"
+  ]
 }

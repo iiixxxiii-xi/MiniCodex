@@ -1,0 +1,24 @@
+{
+  "id": "ds-07",
+  "repo": "ds",
+  "instruction": "Fix `LRUCache.get` so it refreshes the accessed key's recency (the current code returns the value but does not move the key to most-recently-used).",
+  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -95,6 +95,8 @@\n     def get(self, key):\n         if key not in self._items:\n             return -1\n+        self._order.remove(key)\n+        self._order.append(key)\n         return self._items[key]\n \n     def put(self, key, value):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-07",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "data-structure",
+    "estimated_lines": 3
+  },
+  "fail_to_pass": [
+    "tests/test_ds.py::test_lru_get_updates_recency",
+    "tests/test_ds.py::test_lru_get_refreshes_after_eviction"
+  ],
+  "pass_to_pass": [
+    "tests/test_ds.py::test_stack_push_pop",
+    "tests/test_ds.py::test_linked_list_len_basic",
+    "tests/test_ds.py::test_binary_tree_height_basic",
+    "tests/test_ds.py::test_lru_get_missing"
+  ]
+}

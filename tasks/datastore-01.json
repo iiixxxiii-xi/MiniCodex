@@ -3,11 +3,21 @@
   "repo": "datastore",
   "instruction": "Fix `parse_json` so an empty string parses to an empty dict instead of raising a JSON decode error.",
   "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -5,6 +5,8 @@\n \n def parse_json(text):\n     \"\"\"Parse a JSON string into a Python object.\"\"\"\n+    if not text.strip():\n+        return {}\n     return json.loads(text)\n \n \n",
-  "test_command": "python -m pytest tests/test_datastore.py::test_parse_json -q",
-  "repo_path": "tasks/repos/datastore",
+  "test_command": "",
+  "repo_path": "tasks/repos/datastore/datastore-01",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "data",
     "estimated_lines": 2
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_datastore.py::test_parse_json_empty",
+    "tests/test_datastore.py::test_parse_json_whitespace"
+  ],
+  "pass_to_pass": [
+    "tests/test_datastore.py::test_parse_csv_strips",
+    "tests/test_datastore.py::test_filter_records_match",
+    "tests/test_datastore.py::test_to_csv_default"
+  ]
 }

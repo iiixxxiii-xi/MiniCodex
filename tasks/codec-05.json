@@ -1,0 +1,24 @@
+{
+  "id": "codec-05",
+  "repo": "codec",
+  "instruction": "Fix `url_encode` so it percent-encodes reserved characters such as '/' (the current code passes '/' through unencoded).",
+  "gold_patch": "diff --git a/codec.py b/codec.py\n--- a/codec.py\n+++ b/codec.py\n@@ -27,7 +27,7 @@\n \n def url_encode(text):\n     \"\"\"Percent-encode ``text`` (encoding spaces and reserved characters).\"\"\"\n-    return quote(text)\n+    return quote(text, safe=\"\")\n \n \n def url_decode(text):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/codec/codec-05",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "encoding",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_codec.py::test_url_encode_reserved",
+    "tests/test_codec.py::test_url_encode_multiple_slashes"
+  ],
+  "pass_to_pass": [
+    "tests/test_codec.py::test_base64_encode_basic",
+    "tests/test_codec.py::test_char_count_ascii",
+    "tests/test_codec.py::test_hex_encode_basic",
+    "tests/test_codec.py::test_url_encode_spaces"
+  ]
+}

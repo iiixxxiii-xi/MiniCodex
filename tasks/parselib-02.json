@@ -1,0 +1,24 @@
+{
+  "id": "parselib-02",
+  "repo": "parselib",
+  "instruction": "Fix `strip_comments` so it keeps the code before a `#` comment (the current code keeps the comment text instead of the code).",
+  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -16,7 +16,7 @@\n     \"\"\"Remove `#` line comments from a text block.\"\"\"\n     out = []\n     for line in text.splitlines():\n-        out.append(line.split(\"#\", 1)[-1].rstrip())\n+        out.append(line.split(\"#\", 1)[0].rstrip())\n     return \"\\n\".join(out)\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/parselib/parselib-02",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "parsing",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_parselib.py::test_strip_comments_basic",
+    "tests/test_parselib.py::test_strip_comments_full_line"
+  ],
+  "pass_to_pass": [
+    "tests/test_parselib.py::test_parse_json_object",
+    "tests/test_parselib.py::test_split_words_basic",
+    "tests/test_parselib.py::test_get_field_present",
+    "tests/test_parselib.py::test_strip_comments_no_comment"
+  ]
+}

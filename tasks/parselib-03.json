@@ -1,0 +1,24 @@
+{
+  "id": "parselib-03",
+  "repo": "parselib",
+  "instruction": "Fix `parse_csv` so quoted fields containing commas are kept as a single field (the current code splits on every comma).",
+  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -22,7 +22,7 @@\n \n def parse_csv(text):\n     \"\"\"Parse a CSV string into a list of rows (honouring quoted fields).\"\"\"\n-    return [line.split(\",\") for line in text.splitlines()]\n+    return [row for row in csv.reader(io.StringIO(text))]\n \n \n def parse_kv(text):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/parselib/parselib-03",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "parsing",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_parselib.py::test_parse_csv_quoted_field",
+    "tests/test_parselib.py::test_parse_csv_quoted_two"
+  ],
+  "pass_to_pass": [
+    "tests/test_parselib.py::test_parse_json_object",
+    "tests/test_parselib.py::test_parse_kv_basic",
+    "tests/test_parselib.py::test_get_field_present",
+    "tests/test_parselib.py::test_parse_csv_basic"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "parselib-04",
+  "repo": "parselib",
+  "instruction": "Fix `parse_kv` so a value containing '=' is preserved (split on the first '=' only).",
+  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -34,7 +34,7 @@\n             continue\n         if \"=\" not in line:\n             continue\n-        key, value = line.split(\"=\")\n+        key, value = line.split(\"=\", 1)\n         result[key.strip()] = value.strip()\n     return result\n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/parselib/parselib-04",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "parsing",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_parselib.py::test_parse_kv_value_with_equals",
+    "tests/test_parselib.py::test_parse_kv_multiple_equals"
+  ],
+  "pass_to_pass": [
+    "tests/test_parselib.py::test_parse_json_object",
+    "tests/test_parselib.py::test_parse_csv_basic",
+    "tests/test_parselib.py::test_sum_column_basic",
+    "tests/test_parselib.py::test_parse_kv_basic"
+  ]
+}

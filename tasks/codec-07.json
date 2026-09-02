@@ -1,0 +1,24 @@
+{
+  "id": "codec-07",
+  "repo": "codec",
+  "instruction": "Fix `byte_count` so it returns the UTF-8 byte length (the current code returns the character count, which is wrong for multi-byte characters).",
+  "gold_patch": "diff --git a/codec.py b/codec.py\n--- a/codec.py\n+++ b/codec.py\n@@ -42,7 +42,7 @@\n \n def byte_count(text):\n     \"\"\"Return the number of UTF-8 bytes in ``text``.\"\"\"\n-    return len(text)\n+    return len(text.encode(\"utf-8\"))\n \n \n def normalize(text):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/codec/codec-07",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "encoding",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_codec.py::test_byte_count_unicode",
+    "tests/test_codec.py::test_byte_count_unicode_two"
+  ],
+  "pass_to_pass": [
+    "tests/test_codec.py::test_char_count_ascii",
+    "tests/test_codec.py::test_char_count_unicode",
+    "tests/test_codec.py::test_hex_encode_basic",
+    "tests/test_codec.py::test_byte_count_ascii"
+  ]
+}

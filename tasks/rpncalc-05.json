@@ -2,12 +2,23 @@
   "id": "rpncalc-05",
   "repo": "rpncalc",
   "instruction": "Fix `precedence` so multiplication and division bind tighter (higher value) than addition and subtraction.",
-  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -33,7 +33,7 @@\n \n def precedence(op):\n     \"\"\"Return the precedence of operator ``op`` (higher binds tighter).\"\"\"\n-    return {\"+\": 1, \"-\": 1, \"*\": 1, \"/\": 1}[op]\n+    return {\"+\": 1, \"-\": 1, \"*\": 2, \"/\": 2}[op]\n \n \n def tokenize(expr):\n",
-  "test_command": "python -m pytest tests/test_rpncalc.py::test_precedence -q",
-  "repo_path": "tasks/repos/rpncalc",
+  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -37,7 +37,7 @@\n \n def precedence(op):\n     \"\"\"Return the precedence of operator ``op`` (higher binds tighter).\"\"\"\n-    return {\"+\": 1, \"-\": 1, \"*\": 1, \"/\": 1}[op]\n+    return {\"+\": 1, \"-\": 1, \"*\": 2, \"/\": 2}[op]\n \n \n def tokenize(expr):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/rpncalc/rpncalc-05",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "parsing",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_rpncalc.py::test_precedence_mul_tighter",
+    "tests/test_rpncalc.py::test_precedence_div_tighter"
+  ],
+  "pass_to_pass": [
+    "tests/test_rpncalc.py::test_tokenize_single",
+    "tests/test_rpncalc.py::test_safe_divide_basic",
+    "tests/test_rpncalc.py::test_format_number_int",
+    "tests/test_rpncalc.py::test_precedence_div_equals_mul"
+  ]
 }

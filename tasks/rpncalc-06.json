@@ -2,12 +2,23 @@
   "id": "rpncalc-06",
   "repo": "rpncalc",
   "instruction": "Fix `tokenize` so it splits on whitespace and keeps multi-character numbers intact (it currently splits every character).",
-  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -38,7 +38,7 @@\n \n def tokenize(expr):\n     \"\"\"Split an RPN expression string into tokens.\"\"\"\n-    return list(expr.replace(\" \", \"\"))\n+    return expr.split()\n \n \n def evaluate(tokens):\n",
-  "test_command": "python -m pytest tests/test_rpncalc.py::test_tokenize -q",
-  "repo_path": "tasks/repos/rpncalc",
+  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -42,7 +42,7 @@\n \n def tokenize(expr):\n     \"\"\"Split an RPN expression string into tokens.\"\"\"\n-    return list(expr.replace(\" \", \"\"))\n+    return expr.split()\n \n \n def evaluate(tokens):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/rpncalc/rpncalc-06",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "parsing",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_rpncalc.py::test_tokenize_multi",
+    "tests/test_rpncalc.py::test_tokenize_multi_two"
+  ],
+  "pass_to_pass": [
+    "tests/test_rpncalc.py::test_is_number_int",
+    "tests/test_rpncalc.py::test_safe_divide_basic",
+    "tests/test_rpncalc.py::test_format_number_int",
+    "tests/test_rpncalc.py::test_tokenize_single"
+  ]
 }

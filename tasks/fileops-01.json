@@ -2,12 +2,23 @@
   "id": "fileops-01",
   "repo": "fileops",
   "instruction": "Fix `read_lines` so it returns each line intact instead of splitting on every whitespace character (which merges words across lines).",
-  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -6,7 +6,7 @@\n def read_lines(path):\n     \"\"\"Read a text file and return its lines without trailing newlines.\"\"\"\n     with open(path, encoding=\"utf-8\") as f:\n-        return f.read().split()\n+        return f.read().splitlines()\n \n \n def count_lines(path):\n",
-  "test_command": "python -m pytest tests/test_fileops.py::test_read_lines -q",
-  "repo_path": "tasks/repos/fileops",
+  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -7,7 +7,7 @@\n def read_lines(path):\n     \"\"\"Read a text file and return its lines without trailing newlines.\"\"\"\n     with open(path, encoding=\"utf-8\") as f:\n-        return f.read().split()\n+        return f.read().splitlines()\n \n \n def count_lines(path):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/fileops/fileops-01",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "file-io",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_fileops.py::test_read_lines_basic",
+    "tests/test_fileops.py::test_read_lines_words"
+  ],
+  "pass_to_pass": [
+    "tests/test_fileops.py::test_count_lines_basic",
+    "tests/test_fileops.py::test_tail_basic",
+    "tests/test_fileops.py::test_append_line_basic",
+    "tests/test_fileops.py::test_read_lines_no_trailing_newline"
+  ]
 }

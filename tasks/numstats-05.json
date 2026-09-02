@@ -2,12 +2,23 @@
   "id": "numstats-05",
   "repo": "numstats",
   "instruction": "Fix `percentile` so p=100 does not index past the end of the sorted list.",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -27,7 +27,7 @@\n def percentile(values, p):\n     \"\"\"Return the ``p``-th percentile (0-100) of ``values``.\"\"\"\n     s = sorted(values)\n-    idx = int(len(s) * p / 100)\n+    idx = min(int(len(s) * p / 100), len(s) - 1)\n     return s[idx]\n \n \n",
-  "test_command": "python -m pytest tests/test_numstats.py::test_percentile -q",
-  "repo_path": "tasks/repos/numstats",
+  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -31,7 +31,7 @@\n def percentile(values, p):\n     \"\"\"Return the ``p``-th percentile (0-100) of ``values``.\"\"\"\n     s = sorted(values)\n-    idx = int(len(s) * p / 100)\n+    idx = min(int(len(s) * p / 100), len(s) - 1)\n     return s[idx]\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/numstats/numstats-05",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "numeric",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_numstats.py::test_percentile_max",
+    "tests/test_numstats.py::test_percentile_full"
+  ],
+  "pass_to_pass": [
+    "tests/test_numstats.py::test_mean_basic",
+    "tests/test_numstats.py::test_mode_basic",
+    "tests/test_numstats.py::test_gcd_basic",
+    "tests/test_numstats.py::test_percentile_median"
+  ]
 }

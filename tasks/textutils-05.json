@@ -3,11 +3,21 @@
   "repo": "textutils",
   "instruction": "Fix `slugify` so consecutive spaces collapse into a single dash and leading/trailing whitespace is removed.",
   "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -27,7 +27,7 @@\n \n def slugify(s):\n     \"\"\"Lowercase ``s`` and replace runs of whitespace with a single dash.\"\"\"\n-    return s.lower().replace(\" \", \"-\")\n+    return \"-\".join(s.lower().split())\n \n \n def camel_to_snake(s):\n",
-  "test_command": "python -m pytest tests/test_textutils.py::test_slugify -q",
-  "repo_path": "tasks/repos/textutils",
+  "test_command": "",
+  "repo_path": "tasks/repos/textutils/textutils-05",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "string",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_textutils.py::test_slugify_collapse",
+    "tests/test_textutils.py::test_slugify_tab"
+  ],
+  "pass_to_pass": [
+    "tests/test_textutils.py::test_reverse_words_two",
+    "tests/test_textutils.py::test_truncate_short",
+    "tests/test_textutils.py::test_count_occurrences_single"
+  ]
 }

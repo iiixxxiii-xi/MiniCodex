@@ -2,12 +2,23 @@
   "id": "numstats-06",
   "repo": "numstats",
   "instruction": "Fix `moving_average` so it only produces full windows of `window` elements (the current range over-iterates and emits trailing partial windows).",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -33,7 +33,7 @@\n \n def moving_average(values, window):\n     \"\"\"Return the moving average of ``values`` over ``window``.\"\"\"\n-    return [sum(values[i:i + window]) / window for i in range(len(values))]\n+    return [sum(values[i:i + window]) / window for i in range(len(values) - window + 1)]\n \n \n def clamp(value, lo, hi):\n",
-  "test_command": "python -m pytest tests/test_numstats.py::test_moving_average -q",
-  "repo_path": "tasks/repos/numstats",
+  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -37,7 +37,7 @@\n \n def moving_average(values, window):\n     \"\"\"Return the moving average of ``values`` over ``window``.\"\"\"\n-    return [sum(values[i:i + window]) / window for i in range(len(values))]\n+    return [sum(values[i:i + window]) / window for i in range(len(values) - window + 1)]\n \n \n def clamp(value, lo, hi):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/numstats/numstats-06",
+  "base_commit": "",
   "metadata": {
     "difficulty": "medium",
     "category": "numeric",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_numstats.py::test_moving_average_basic",
+    "tests/test_numstats.py::test_moving_average_window_two"
+  ],
+  "pass_to_pass": [
+    "tests/test_numstats.py::test_mean_basic",
+    "tests/test_numstats.py::test_median_odd",
+    "tests/test_numstats.py::test_clamp_low",
+    "tests/test_numstats.py::test_moving_average_window_one"
+  ]
 }

@@ -2,12 +2,23 @@
   "id": "datastore-06",
   "repo": "datastore",
   "instruction": "Fix `summarize` so it sums floats (e.g. \"1.5\") instead of coercing every value with int() and crashing on decimals.",
-  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -35,7 +35,7 @@\n     \"\"\"Sum a list of numeric strings/values into a float.\"\"\"\n     total = 0\n     for v in values:\n-        total += int(v)\n+        total += float(v)\n     return total\n \n \n",
-  "test_command": "python -m pytest tests/test_datastore.py::test_summarize -q",
-  "repo_path": "tasks/repos/datastore",
+  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -37,7 +37,7 @@\n     \"\"\"Sum a list of numeric strings/values into a float.\"\"\"\n     total = 0.0\n     for v in values:\n-        total += int(v)\n+        total += float(v)\n     return total\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/datastore/datastore-06",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "numeric",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_datastore.py::test_summarize_floats",
+    "tests/test_datastore.py::test_summarize_mixed"
+  ],
+  "pass_to_pass": [
+    "tests/test_datastore.py::test_parse_json_object",
+    "tests/test_datastore.py::test_to_csv_default",
+    "tests/test_datastore.py::test_dedupe_keeps_first",
+    "tests/test_datastore.py::test_summarize_ints"
+  ]
 }

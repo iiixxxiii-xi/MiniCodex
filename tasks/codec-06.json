@@ -1,0 +1,24 @@
+{
+  "id": "codec-06",
+  "repo": "codec",
+  "instruction": "Fix `url_decode` so it treats '+' as a space (application/x-www-form-urlencoded); the current code leaves '+' untouched.",
+  "gold_patch": "diff --git a/codec.py b/codec.py\n--- a/codec.py\n+++ b/codec.py\n@@ -32,7 +32,7 @@\n \n def url_decode(text):\n     \"\"\"Decode a percent-encoded (form) string, turning '+' into space.\"\"\"\n-    return unquote(text)\n+    return unquote_plus(text)\n \n \n def char_count(text):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/codec/codec-06",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "encoding",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_codec.py::test_url_decode_plus",
+    "tests/test_codec.py::test_url_decode_plus_multiple"
+  ],
+  "pass_to_pass": [
+    "tests/test_codec.py::test_base64_decode_basic",
+    "tests/test_codec.py::test_char_count_ascii",
+    "tests/test_codec.py::test_hex_decode_basic",
+    "tests/test_codec.py::test_url_decode_percent"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "codec-01",
+  "repo": "codec",
+  "instruction": "Fix `base64_encode` so it encodes the string's UTF-8 bytes (the current code passes the raw str, which base64 rejects).",
+  "gold_patch": "diff --git a/codec.py b/codec.py\n--- a/codec.py\n+++ b/codec.py\n@@ -7,7 +7,7 @@\n \n def base64_encode(data):\n     \"\"\"Base64-encode a string and return the ASCII text.\"\"\"\n-    return base64.b64encode(data)\n+    return base64.b64encode(data.encode(\"utf-8\")).decode(\"ascii\")\n \n \n def base64_decode(text):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/codec/codec-01",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "encoding",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_codec.py::test_base64_encode_basic",
+    "tests/test_codec.py::test_base64_encode_roundtrip"
+  ],
+  "pass_to_pass": [
+    "tests/test_codec.py::test_hex_encode_basic",
+    "tests/test_codec.py::test_char_count_ascii",
+    "tests/test_codec.py::test_url_encode_spaces"
+  ]
+}

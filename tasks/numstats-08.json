@@ -2,12 +2,22 @@
   "id": "numstats-08",
   "repo": "numstats",
   "instruction": "Fix `fibonacci` so fib(0) returns 0 (the base case currently returns 1 for both 0 and 1).",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -48,7 +48,7 @@\n def fibonacci(n):\n     \"\"\"Return the n-th Fibonacci number (fib(0)=0, fib(1)=1).\"\"\"\n     if n <= 1:\n-        return 1\n+        return n\n     return fibonacci(n - 1) + fibonacci(n - 2)\n \n \n",
-  "test_command": "python -m pytest tests/test_numstats.py::test_fibonacci -q",
-  "repo_path": "tasks/repos/numstats",
+  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -52,7 +52,7 @@\n def fibonacci(n):\n     \"\"\"Return the n-th Fibonacci number (fib(0)=0, fib(1)=1).\"\"\"\n     if n <= 1:\n-        return 1\n+        return n\n     return fibonacci(n - 1) + fibonacci(n - 2)\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/numstats/numstats-08",
+  "base_commit": "",
   "metadata": {
     "difficulty": "easy",
     "category": "numeric",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_numstats.py::test_fibonacci_zero",
+    "tests/test_numstats.py::test_fibonacci_nth"
+  ],
+  "pass_to_pass": [
+    "tests/test_numstats.py::test_mean_basic",
+    "tests/test_numstats.py::test_is_prime_two",
+    "tests/test_numstats.py::test_gcd_basic"
+  ]
 }

@@ -1,0 +1,22 @@
+{
+  "id": "ds-03",
+  "repo": "ds",
+  "instruction": "Fix `linked_list_reverse` so it returns the new head (the current version returns the stale tail pointer).",
+  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -44,7 +44,7 @@\n         cur.next = prev\n         prev = cur\n         cur = nxt\n-    return cur\n+    return prev\n \n \n def stack_push(stack, value):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-03",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "data-structure",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_ds.py::test_linked_list_reverse_basic",
+    "tests/test_ds.py::test_linked_list_reverse_single"
+  ],
+  "pass_to_pass": [
+    "tests/test_ds.py::test_linked_list_len_basic",
+    "tests/test_ds.py::test_stack_push_pop"
+  ]
+}

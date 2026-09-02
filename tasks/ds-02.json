@@ -1,0 +1,23 @@
+{
+  "id": "ds-02",
+  "repo": "ds",
+  "instruction": "Fix `linked_list_append` so it walks only as far as the last node (the current loop walks past the tail and crashes).",
+  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -29,7 +29,7 @@\n     if head is None:\n         return new\n     cur = head\n-    while cur is not None:\n+    while cur.next is not None:\n         cur = cur.next\n     cur.next = new\n     return head\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-02",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "data-structure",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_ds.py::test_linked_list_append_build",
+    "tests/test_ds.py::test_linked_list_append_single"
+  ],
+  "pass_to_pass": [
+    "tests/test_ds.py::test_linked_list_len_basic",
+    "tests/test_ds.py::test_stack_peek_basic",
+    "tests/test_ds.py::test_linked_list_append_empty"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "parselib-01",
+  "repo": "parselib",
+  "instruction": "Fix `parse_json` so blank input parses to an empty dict instead of raising a JSON decode error.",
+  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -7,6 +7,8 @@\n \n def parse_json(text):\n     \"\"\"Parse a JSON string, treating blank input as an empty dict.\"\"\"\n+    if not text.strip():\n+        return {}\n     return json.loads(text)\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/parselib/parselib-01",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "parsing",
+    "estimated_lines": 2
+  },
+  "fail_to_pass": [
+    "tests/test_parselib.py::test_parse_json_blank",
+    "tests/test_parselib.py::test_parse_json_empty"
+  ],
+  "pass_to_pass": [
+    "tests/test_parselib.py::test_parse_csv_basic",
+    "tests/test_parselib.py::test_parse_kv_basic",
+    "tests/test_parselib.py::test_get_field_present",
+    "tests/test_parselib.py::test_parse_json_object"
+  ]
+}

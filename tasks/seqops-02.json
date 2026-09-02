@@ -3,11 +3,21 @@
   "repo": "seqops",
   "instruction": "Fix `merge_sorted` so it appends the remaining elements of whichever list is not exhausted after the main merge loop.",
   "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -26,6 +26,8 @@\n         else:\n             out.append(b[j])\n             j += 1\n+    out.extend(a[i:])\n+    out.extend(b[j:])\n     return out\n \n \n",
-  "test_command": "python -m pytest tests/test_seqops.py::test_merge_sorted -q",
-  "repo_path": "tasks/repos/seqops",
+  "test_command": "",
+  "repo_path": "tasks/repos/seqops/seqops-02",
+  "base_commit": "",
   "metadata": {
     "difficulty": "medium",
     "category": "algorithm",
     "estimated_lines": 2
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_seqops.py::test_merge_sorted_one_exhausted",
+    "tests/test_seqops.py::test_merge_sorted_interleaved"
+  ],
+  "pass_to_pass": [
+    "tests/test_seqops.py::test_binary_search_middle",
+    "tests/test_seqops.py::test_rotate_basic",
+    "tests/test_seqops.py::test_max_subarray_positive"
+  ]
 }

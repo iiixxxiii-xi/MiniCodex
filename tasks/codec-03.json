@@ -1,0 +1,23 @@
+{
+  "id": "codec-03",
+  "repo": "codec",
+  "instruction": "Fix `hex_encode` so it encodes the string's UTF-8 bytes (the current code calls `.hex()` directly on the str, which has no such method).",
+  "gold_patch": "diff --git a/codec.py b/codec.py\n--- a/codec.py\n+++ b/codec.py\n@@ -17,7 +17,7 @@\n \n def hex_encode(data):\n     \"\"\"Hex-encode a string.\"\"\"\n-    return data.hex()\n+    return data.encode(\"utf-8\").hex()\n \n \n def hex_decode(text):\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/codec/codec-03",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "encoding",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_codec.py::test_hex_encode_basic",
+    "tests/test_codec.py::test_hex_roundtrip_unicode"
+  ],
+  "pass_to_pass": [
+    "tests/test_codec.py::test_base64_encode_basic",
+    "tests/test_codec.py::test_char_count_ascii",
+    "tests/test_codec.py::test_url_encode_spaces"
+  ]
+}

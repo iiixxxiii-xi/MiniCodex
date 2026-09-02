@@ -2,12 +2,23 @@
   "id": "fileops-03",
   "repo": "fileops",
   "instruction": "Fix `tail` so n=0 returns an empty list (the slice `[-0:]` currently returns the entire file).",
-  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -19,6 +19,8 @@\n     \"\"\"Return the last ``n`` lines of a text file.\"\"\"\n     with open(path, encoding=\"utf-8\") as f:\n         lines = f.read().splitlines()\n+    if n <= 0:\n+        return []\n     return lines[-n:]\n \n \n",
-  "test_command": "python -m pytest tests/test_fileops.py::test_tail -q",
-  "repo_path": "tasks/repos/fileops",
+  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -20,6 +20,8 @@\n     \"\"\"Return the last ``n`` lines of a text file.\"\"\"\n     with open(path, encoding=\"utf-8\") as f:\n         lines = f.read().splitlines()\n+    if n <= 0:\n+        return []\n     return lines[-n:]\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/fileops/fileops-03",
+  "base_commit": "",
   "metadata": {
     "difficulty": "medium",
     "category": "file-io",
     "estimated_lines": 2
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_fileops.py::test_tail_zero",
+    "tests/test_fileops.py::test_tail_negative"
+  ],
+  "pass_to_pass": [
+    "tests/test_fileops.py::test_read_lines_basic",
+    "tests/test_fileops.py::test_count_lines_basic",
+    "tests/test_fileops.py::test_append_line_basic",
+    "tests/test_fileops.py::test_tail_basic"
+  ]
 }

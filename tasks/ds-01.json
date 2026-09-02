@@ -1,0 +1,22 @@
+{
+  "id": "ds-01",
+  "repo": "ds",
+  "instruction": "Fix `linked_list_len` so it counts the final node (the loop currently stops one node early).",
+  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -17,7 +17,7 @@\n def linked_list_len(head):\n     \"\"\"Return the number of nodes in a linked list.\"\"\"\n     count = 0\n-    while head.next is not None:\n+    while head is not None:\n         count += 1\n         head = head.next\n     return count\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-01",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "data-structure",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_ds.py::test_linked_list_len_basic",
+    "tests/test_ds.py::test_linked_list_len_empty"
+  ],
+  "pass_to_pass": [
+    "tests/test_ds.py::test_stack_push_pop",
+    "tests/test_ds.py::test_linked_list_reverse_single"
+  ]
+}

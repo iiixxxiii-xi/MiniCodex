@@ -1,13 +1,24 @@
 {
   "id": "textutils-01",
   "repo": "textutils",
-  "instruction": "Fix `reverse_words` so it returns the words in reverse order. It currently drops the first word because of an off-by-one in the loop range.",
+  "instruction": "Fix `reverse_words` so it keeps the first word. It currently drops it because of an off-by-one in the loop range.",
   "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -5,7 +5,7 @@\n     \"\"\"Return the words of ``s`` in reverse order.\"\"\"\n     words = s.split()\n     result = []\n-    for i in range(len(words) - 1, 0, -1):\n+    for i in range(len(words) - 1, -1, -1):\n         result.append(words[i])\n     return \" \".join(result)\n \n",
-  "test_command": "python -m pytest tests/test_textutils.py::test_reverse_words -q",
-  "repo_path": "tasks/repos/textutils",
+  "test_command": "",
+  "repo_path": "tasks/repos/textutils/textutils-01",
+  "base_commit": "",
   "metadata": {
     "difficulty": "medium",
     "category": "string",
     "estimated_lines": 1
-  }
+  },
+  "fail_to_pass": [
+    "tests/test_textutils.py::test_reverse_words_two",
+    "tests/test_textutils.py::test_reverse_words_three",
+    "tests/test_textutils.py::test_reverse_words_single"
+  ],
+  "pass_to_pass": [
+    "tests/test_textutils.py::test_capitalize_words_simple",
+    "tests/test_textutils.py::test_slugify_simple",
+    "tests/test_textutils.py::test_common_prefix_basic"
+  ]
 }

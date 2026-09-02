@@ -1,7 +1,0 @@
-{
-  "id": "sum",
-  "repo": "sum",
-  "instruction": "Write the number 42 into a file named result.txt in the workspace root.",
-  "gold_patch": "write '42' to result.txt",
-  "test_command": "python -c \"import os,sys; ok = os.path.exists('result.txt') and open('result.txt').read().strip()=='42'; sys.exit(0 if ok else 1)\""
-}
