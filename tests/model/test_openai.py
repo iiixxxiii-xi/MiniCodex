@@ -366,3 +366,24 @@ async def test_openai_stream_passes_extra_body_and_tool_choice():
     sent = client.chat.completions.captured[0]
     assert sent["extra_body"] == {"thinking": {"type": "disabled"}}
     assert sent["tool_choice"] == "required"
+
+
+async def test_openai_query_defaults_max_tokens_4096():
+    client = _CapturingClient()
+    model = OpenAIModel(model="gpt-4o-mini", client=client)
+    await model.query([{"role": "user", "content": "hi"}], tools=[])
+    assert client.captured[0]["max_tokens"] == 4096
+
+
+async def test_openai_query_passes_custom_max_tokens():
+    client = _CapturingClient()
+    model = OpenAIModel(model="deepseek-v4-flash", client=client, max_tokens=8192)
+    await model.query([{"role": "user", "content": "hi"}], tools=[])
+    assert client.captured[0]["max_tokens"] == 8192
+
+
+async def test_openai_stream_passes_max_tokens():
+    client = _StreamingClient(chunks=[])
+    model = OpenAIModel(model="deepseek-v4-flash", client=client, max_tokens=8192)
+    _ = [chunk async for chunk in model.stream([], [])]
+    assert client.chat.completions.captured[0]["max_tokens"] == 8192

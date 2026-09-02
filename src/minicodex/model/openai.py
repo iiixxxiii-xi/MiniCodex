@@ -122,6 +122,7 @@ class OpenAIModel:
         base_url: str | None = None,
         api_key: str | None = None,
         max_attempts: int = 5,
+        max_tokens: int = 4096,
         extra_body: dict | None = None,
         tool_choice: str | None = None,
     ):
@@ -130,6 +131,7 @@ class OpenAIModel:
         self.base_url = base_url
         self.api_key = api_key
         self.max_attempts = max_attempts
+        self.max_tokens = max_tokens
         self.extra_body = extra_body
         self.tool_choice = tool_choice
         self._cancelled = False
@@ -156,6 +158,7 @@ class OpenAIModel:
                 model=self.model,
                 messages=payload,
                 tools=strict_tools,
+                max_tokens=self.max_tokens,
                 extra_body=self.extra_body,
                 tool_choice=self.tool_choice,
             )
@@ -183,6 +186,7 @@ class OpenAIModel:
                 model=self.model,
                 messages=payload,
                 tools=strict_tools,
+                max_tokens=self.max_tokens,
                 extra_body=self.extra_body,
                 tool_choice=self.tool_choice,
                 stream=True,
