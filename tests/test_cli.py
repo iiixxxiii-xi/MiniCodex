@@ -5,7 +5,7 @@ import sys
 
 from typer.testing import CliRunner
 
-from minicodex.cli.main import app
+from minicodex.cli.main import app, resolve_model
 
 runner = CliRunner()
 
@@ -186,3 +186,19 @@ def test_run_sandbox_invalid_value_errors(tmp_path):
     task_file.write_text(_task_json("t1"), encoding="utf-8")
     result = runner.invoke(app, ["run", str(task_file), "--mock", "--sandbox", "bogus"])
     assert result.exit_code != 0
+
+
+def test_resolve_model_deepseek_v4_forces_tools_and_disables_thinking():
+    model = resolve_model("deepseek/deepseek-v4-flash", mock=False)
+    assert model.model == "deepseek-v4-flash"
+    assert model.extra_body == {"thinking": {"type": "disabled"}}
+    assert model.tool_choice == "required"
+    assert model.max_tokens == 8192
+
+
+def test_resolve_model_deepseek_chat_uses_defaults():
+    model = resolve_model("deepseek/deepseek-chat", mock=False)
+    assert model.model == "deepseek-chat"
+    assert model.extra_body is None
+    assert model.tool_choice is None
+    assert model.max_tokens == 4096
