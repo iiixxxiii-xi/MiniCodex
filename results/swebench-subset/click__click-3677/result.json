@@ -1,0 +1,23 @@
+{
+  "task_id": "click__click-3677",
+  "exit_status": "LimitsExceeded",
+  "passed": true,
+  "metrics": {
+    "task_success": true,
+    "tool_calls": 25,
+    "avg_tool_calls_per_step": 1.0,
+    "input_tokens": 321622,
+    "output_tokens": 7511,
+    "total_tokens": 329133,
+    "cost_usd": 1.077531,
+    "latency_ms": 66546.99999999866,
+    "total_errors": 0,
+    "recoverable_errors": 0,
+    "recovered_errors": 0,
+    "recovery_rate": 1.0,
+    "invalid_tool_calls": 0,
+    "invalid_tool_call_rate": 0.0
+  },
+  "error": "",
+  "trajectory_path": null
+}
