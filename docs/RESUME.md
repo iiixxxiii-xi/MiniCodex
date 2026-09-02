@@ -16,4 +16,4 @@
 
 **Recovery Harness:** 实现 stale-element recovery、loop detection、page-state verification、checkpoint-resume 与 task-level memory，在页面跳转、元素变化、browser crash 和 tool failure 场景自动 re-observe - replan - recover。
 
-**Benchmark:** 在自建 **46** 个 long-horizon tasks 上完成评测，相较基础 ReAct Agent 将 success rate **从 87.0% 提升到 100%（+13pp）**，无效 action **相对降低 58%**（2.6% → 1.1%），平均 recovery success **83.3%**。
+**Benchmark:** 在自建 **67** 个 long-horizon tasks 上完成评测（含 15 个视觉必需 + 6 个 20-40 步超长任务），相较基础 ReAct Agent 将 success rate **从 85.1% 提升到 91.0%（+6.0pp）**，无效 action **相对降低 17%**（1.0% → 0.8%），平均 recovery success **33.3%**。
