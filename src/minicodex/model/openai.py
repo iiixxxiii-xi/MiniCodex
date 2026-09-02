@@ -122,12 +122,16 @@ class OpenAIModel:
         base_url: str | None = None,
         api_key: str | None = None,
         max_attempts: int = 5,
+        extra_body: dict | None = None,
+        tool_choice: str | None = None,
     ):
         self.model = model
         self._client = client
         self.base_url = base_url
         self.api_key = api_key
         self.max_attempts = max_attempts
+        self.extra_body = extra_body
+        self.tool_choice = tool_choice
         self._cancelled = False
 
     def _get_client(self):
@@ -152,6 +156,8 @@ class OpenAIModel:
                 model=self.model,
                 messages=payload,
                 tools=strict_tools,
+                extra_body=self.extra_body,
+                tool_choice=self.tool_choice,
             )
 
         try:
@@ -177,6 +183,8 @@ class OpenAIModel:
                 model=self.model,
                 messages=payload,
                 tools=strict_tools,
+                extra_body=self.extra_body,
+                tool_choice=self.tool_choice,
                 stream=True,
             )
             async for chunk in stream:

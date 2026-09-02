@@ -329,3 +329,40 @@ def test_to_openai_messages_omits_empty_reasoning_content():
     messages = [{"role": "assistant", "content": "done"}]
     out = to_openai_messages(messages)
     assert "reasoning_content" not in out[0]
+
+
+async def test_openai_query_passes_extra_body_and_tool_choice():
+    client = _CapturingClient()
+    model = OpenAIModel(
+        model="deepseek-v4-flash",
+        client=client,
+        extra_body={"thinking": {"type": "disabled"}},
+        tool_choice="required",
+    )
+    await model.query([{"role": "user", "content": "hi"}], tools=[])
+    sent = client.captured[0]
+    assert sent["extra_body"] == {"thinking": {"type": "disabled"}}
+    assert sent["tool_choice"] == "required"
+
+
+async def test_openai_query_defaults_extra_body_and_tool_choice_to_none():
+    client = _CapturingClient()
+    model = OpenAIModel(model="gpt-4o-mini", client=client)
+    await model.query([{"role": "user", "content": "hi"}], tools=[])
+    sent = client.captured[0]
+    assert sent["extra_body"] is None
+    assert sent["tool_choice"] is None
+
+
+async def test_openai_stream_passes_extra_body_and_tool_choice():
+    client = _StreamingClient(chunks=[])
+    model = OpenAIModel(
+        model="deepseek-v4-flash",
+        client=client,
+        extra_body={"thinking": {"type": "disabled"}},
+        tool_choice="required",
+    )
+    _ = [chunk async for chunk in model.stream([], [])]
+    sent = client.chat.completions.captured[0]
+    assert sent["extra_body"] == {"thinking": {"type": "disabled"}}
+    assert sent["tool_choice"] == "required"
