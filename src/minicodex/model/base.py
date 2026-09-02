@@ -12,6 +12,21 @@ class ToolCall(BaseModel):
     arguments: dict
 
 
+class ToolCallDelta(BaseModel):
+    """A single incremental fragment of a tool call seen during streaming.
+
+    ``arguments`` carries a raw JSON *fragment* (not a complete object): adapters
+    emit partial argument text as the provider streams it, and the consumer
+    concatenates fragments per ``index`` before parsing. ``id``/``name`` are set
+    on the first fragment of a tool call and are empty on subsequent fragments.
+    """
+
+    index: int = 0
+    id: str = ""
+    name: str = ""
+    arguments: str = ""
+
+
 class Usage(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
@@ -21,6 +36,7 @@ class Usage(BaseModel):
 class ModelResponse(BaseModel):
     thought: str = ""
     tool_calls: list[ToolCall] = Field(default_factory=list)
+    tool_call_deltas: list[ToolCallDelta] = Field(default_factory=list)
     usage: Usage = Field(default_factory=Usage)
     stop_reason: str = ""
 

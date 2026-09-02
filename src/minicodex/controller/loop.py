@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import time
 
@@ -20,7 +21,8 @@ from minicodex.core.events import (
 )
 from minicodex.core.messages import make_message
 from minicodex.core.types import StepOutput
-from minicodex.model.base import ModelError, ModelResponse, Usage
+from minicodex.model.base import ModelError, ModelResponse, ToolCall, Usage
+from minicodex.model.schema import drop_invalid_tool_calls
 from minicodex.toolsource.base import DuplicateToolError, ToolSource
 from minicodex.toolsource.builtin import BuiltinToolSource
 
@@ -138,10 +140,15 @@ class AgentLoop:
     async def step(self) -> StepOutput:
         self.budgets.check()
         start = time.monotonic()
+        model_start = time.monotonic()
         if self.stream:
             response = await self._collect_stream(self.model.stream(self.messages, self._schemas))
+            # Streaming adapters emit raw argument fragments, so schema
+            # validation of the merged tool calls happens here in the loop.
+            response = drop_invalid_tool_calls(response, self._schemas)
         else:
             response = await self.model.query(self.messages, self._schemas)
+        model_latency_ms = (time.monotonic() - model_start) * 1000
         self.budgets.register_step()
         self.budgets.add_tokens(response.usage.input_tokens, response.usage.output_tokens)
         self.budgets.add_cost(response.usage.cost_usd)
@@ -203,29 +210,68 @@ class AgentLoop:
     async def _collect_stream(self, stream) -> ModelResponse:
         """Merge incremental stream chunks into one final :class:`ModelResponse`.
 
-        ``thought`` accumulates across chunks (streaming text deltas), while
-        ``tool_calls`` and ``usage`` are taken from the last chunk that carries
-        them (adapters emit the complete message in a single final chunk).
+        ``thought`` accumulates across chunks (streaming text deltas). Tool calls
+        arrive in one of two ways:
+
+        * complete ``tool_calls`` on a single chunk (adapters that buffer the
+          full message, e.g. the mock), or
+        * incremental ``tool_call_deltas`` whose ``arguments`` JSON fragments are
+          concatenated per ``index`` and parsed once the stream ends.
+
+        ``usage`` and ``stop_reason`` are taken from the last chunk that carries
+        them.
         """
         thought_parts: list[str] = []
-        tool_calls = []
+        tool_calls: list[ToolCall] = []
         usage = Usage()
         stop_reason = ""
+        delta_slots: dict[int, dict] = {}
         async for chunk in stream:
             if chunk.thought:
                 thought_parts.append(chunk.thought)
+            for delta in chunk.tool_call_deltas:
+                slot = delta_slots.setdefault(delta.index, {"id": "", "name": "", "fragments": []})
+                if delta.id:
+                    slot["id"] = delta.id
+                if delta.name:
+                    slot["name"] = delta.name
+                if delta.arguments:
+                    slot["fragments"].append(delta.arguments)
             if chunk.tool_calls:
                 tool_calls = list(chunk.tool_calls)
             if chunk.usage and (chunk.usage.input_tokens or chunk.usage.output_tokens):
                 usage = chunk.usage
             if chunk.stop_reason:
                 stop_reason = chunk.stop_reason
+        if delta_slots:
+            tool_calls = self._parse_tool_call_deltas(delta_slots)
         return ModelResponse(
             thought="".join(thought_parts),
             tool_calls=tool_calls,
             usage=usage,
             stop_reason=stop_reason,
         )
+
+    @staticmethod
+    def _parse_tool_call_deltas(delta_slots: dict[int, dict]) -> list[ToolCall]:
+        """Build complete :class:`ToolCall` objects from accumulated fragments.
+
+        Fragment order within a tool call is preserved by concatenation; argument
+        JSON that fails to parse degrades to an empty dict rather than raising,
+        so a malformed stream never crashes the loop.
+        """
+        tool_calls: list[ToolCall] = []
+        for index in sorted(delta_slots):
+            slot = delta_slots[index]
+            raw = "".join(slot["fragments"])
+            try:
+                arguments = json.loads(raw) if raw else {}
+            except json.JSONDecodeError:
+                arguments = {}
+            if not isinstance(arguments, dict):
+                arguments = {}
+            tool_calls.append(ToolCall(id=slot["id"], name=slot["name"], arguments=arguments))
+        return tool_calls
 
     def _resolve(self, tool_call) -> dict:
         if not tool_call.name:

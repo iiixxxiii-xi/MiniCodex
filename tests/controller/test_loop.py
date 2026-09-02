@@ -1,6 +1,6 @@
 from minicodex.controller.loop import AgentLoop
 from minicodex.controller.policies.retry import RequeryPolicy
-from minicodex.model.base import ModelError, ModelResponse, Usage
+from minicodex.model.base import ModelError, ModelResponse, ToolCallDelta, Usage
 from minicodex.model.mock import MockModel
 
 
@@ -173,6 +173,101 @@ async def test_loop_stream_merges_chunks_into_final_response():
     assistant = next(m for m in loop.messages if m["role"] == "assistant")
     assert assistant["content"] == "hello world"
     assert model.stream_calls >= 1
+
+
+class IncrementalToolCallStreamModel:
+    """Yields tool-call arguments as JSON fragments across chunks (OpenAI-style
+    streaming deltas); the loop must merge them into one complete ToolCall."""
+
+    def __init__(self):
+        self.stream_calls = 0
+        self.query_calls = 0
+
+    async def query(self, messages, tools):
+        self.query_calls += 1
+        return ModelResponse()
+
+    async def stream(self, messages, tools):
+        self.stream_calls += 1
+        if self.stream_calls == 1:
+            yield ModelResponse(
+                thought="Let me run ",
+                tool_call_deltas=[
+                    ToolCallDelta(index=0, id="call_1", name="shell", arguments='{"command": "ls'),
+                ],
+            )
+            yield ModelResponse(
+                thought="a command.",
+                tool_call_deltas=[ToolCallDelta(index=0, arguments='"}')],
+            )
+            yield ModelResponse(usage=Usage(input_tokens=10, output_tokens=5), stop_reason="tool_calls")
+        else:
+            yield ModelResponse(thought="done", usage=Usage(input_tokens=10, output_tokens=5))
+
+    async def cancel(self):
+        pass
+
+
+async def test_loop_stream_merges_incremental_tool_calls():
+    model = IncrementalToolCallStreamModel()
+    loop = AgentLoop(model=model, env=FakeEnv(), stream=True)
+    result = await loop.run(task="x")
+
+    assert result.exit_status == "finished"
+    assert model.stream_calls == 2
+    assert model.query_calls == 0
+    assistant = next(m for m in loop.messages if m["role"] == "assistant" and m.get("tool_calls"))
+    assert assistant["tool_calls"] == [{"id": "call_1", "name": "shell", "arguments": {"command": "ls"}}]
+
+
+class InvalidArgStreamModel:
+    """Streams a tool call whose arguments violate the declared schema; the loop
+    must reject it (drop) rather than hand garbage to the runtime."""
+
+    def __init__(self):
+        self.stream_calls = 0
+
+    async def query(self, messages, tools):
+        return ModelResponse()
+
+    async def stream(self, messages, tools):
+        self.stream_calls += 1
+        if self.stream_calls == 1:
+            yield ModelResponse(
+                tool_call_deltas=[
+                    ToolCallDelta(index=0, id="call_1", name="shell", arguments='{"command": 123}')
+                ],
+                usage=Usage(input_tokens=1, output_tokens=1),
+                stop_reason="tool_calls",
+            )
+        else:
+            yield ModelResponse(thought="done", usage=Usage(input_tokens=1, output_tokens=1))
+
+    async def cancel(self):
+        pass
+
+
+async def test_loop_stream_drops_invalid_tool_call_arguments():
+    model = InvalidArgStreamModel()
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "shell",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"command": {"type": "string"}},
+                    "required": ["command"],
+                },
+            },
+        }
+    ]
+    loop = AgentLoop(model=model, env=FakeEnv(), stream=True, tools=tools)
+    result = await loop.run(task="x")
+
+    assert result.exit_status == "finished"
+    assistants_with_calls = [m for m in loop.messages if m["role"] == "assistant" and m.get("tool_calls")]
+    assert assistants_with_calls == []
 
 
 class CountingFailingModel:
