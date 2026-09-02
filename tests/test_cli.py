@@ -188,12 +188,15 @@ def test_run_sandbox_invalid_value_errors(tmp_path):
     assert result.exit_code != 0
 
 
-def test_resolve_model_deepseek_v4_forces_tools_and_disables_thinking():
+def test_resolve_model_deepseek_v4_disables_thinking_and_raises_token_budget():
     model = resolve_model("deepseek/deepseek-v4-flash", mock=False)
     assert model.model == "deepseek-v4-flash"
     assert model.extra_body == {"thinking": {"type": "disabled"}}
-    assert model.tool_choice == "required"
     assert model.max_tokens == 8192
+    # tool_choice is left unforced: the loop terminates when the model returns
+    # no tool calls, so forcing a tool call would prevent termination (unlike
+    # CUA, which has a dedicated 'done' action).
+    assert model.tool_choice is None
 
 
 def test_resolve_model_deepseek_chat_uses_defaults():

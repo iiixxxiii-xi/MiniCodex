@@ -55,18 +55,21 @@ def resolve_model(model_id: str, mock: bool):
     if model_id.startswith("deepseek/"):
         name = model_id.split("/", 1)[1]
         # DeepSeek V4 models are reasoning models: their chain-of-thought shares
-        # the output budget with tool calls. Disable the thinking head and force
-        # a tool call so the model can never "narrate instead of act" (thinking
-        # on makes it emit a plan into ``content`` and return no tool calls on
-        # long multi-step tasks). ``tool_choice="required"`` is only accepted
-        # while thinking is disabled, so the two must be set together.
+        # the output budget with tool calls, and with thinking ON they narrate
+        # their plan into ``content`` instead of emitting tool calls on long
+        # multi-step tasks. Disable the thinking head and raise the token budget
+        # so the reasoning tokens don't starve the tool calls.
+        #
+        # Note: unlike CUA (which terminates via a dedicated ``done`` action),
+        # this harness's loop finishes when the model returns *no tool calls*, so
+        # we deliberately do NOT set ``tool_choice="required"`` here — forcing a
+        # tool call would make termination impossible.
         return OpenAIModel(
             model=name,
             base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
             api_key=os.environ.get("DEEPSEEK_API_KEY"),
             max_tokens=8192 if "v4" in name else 4096,
             extra_body={"thinking": {"type": "disabled"}} if "v4" in name else None,
-            tool_choice="required" if "v4" in name else None,
         )
     raise typer.BadParameter(
         f"unrecognized model '{model_id}'; use 'mock', 'anthropic/<id>', 'openai/<id>', or 'deepseek/<id>'"
