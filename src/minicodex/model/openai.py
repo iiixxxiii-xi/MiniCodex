@@ -91,6 +91,11 @@ def openai_message_to_response(
                 arguments=arguments,
             )
         )
+    if finish_reason == "length" and not tool_calls:
+        raise ModelError(
+            "model output truncated (finish_reason='length') before emitting "
+            "tool calls; max_tokens is too low for this reasoning model"
+        )
     input_tokens = int(_get(usage, "prompt_tokens", 0) or 0)
     output_tokens = int(_get(usage, "completion_tokens", 0) or 0)
     return ModelResponse(

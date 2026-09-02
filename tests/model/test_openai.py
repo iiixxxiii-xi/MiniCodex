@@ -137,6 +137,21 @@ def test_openai_invalid_json_arguments_become_empty_dict():
     assert r.tool_calls[0].arguments == {}
 
 
+def test_openai_truncated_without_tool_calls_raises():
+    message = {"content": None, "tool_calls": []}
+    with pytest.raises(ModelError, match="truncat"):
+        openai_message_to_response(message, finish_reason="length")
+
+
+def test_openai_truncated_with_tool_calls_does_not_raise():
+    message = {
+        "content": None,
+        "tool_calls": [{"id": "c", "function": {"name": "shell", "arguments": "{}"}}],
+    }
+    r = openai_message_to_response(message, finish_reason="length")
+    assert r.tool_calls[0].name == "shell"
+
+
 def test_openai_model_instantiates_without_client():
     m = OpenAIModel(model="gpt-4o-mini")
     assert m.model == "gpt-4o-mini"
