@@ -9,6 +9,8 @@ from minicodex.eval.metrics import RunMetrics
 from minicodex.eval.runner import RunResult, Runner
 from minicodex.eval.task import Task
 from minicodex.model.mock import MockModel
+from minicodex.runtime.local import LocalRuntime
+from minicodex.runtime.sandbox.docker import DockerError
 
 
 def _python_cmd(code: str) -> str:
@@ -143,3 +145,69 @@ def test_runner_uses_fail_to_pass_matrix_over_test_command(tmp_path):
     passed, error, _ = runner._run_hidden_test(task, tmp_path)
     assert passed is False
     assert "fail_to_pass" in error
+
+
+def test_runner_build_runtime_uses_docker_sandbox(tmp_path, monkeypatch):
+    calls: dict = {}
+
+    def fake_make_runtime(sandbox, cwd, *, image="python:3.11-slim"):
+        calls["sandbox"] = sandbox
+        calls["image"] = image
+        return LocalRuntime(cwd=cwd)
+
+    monkeypatch.setattr("minicodex.eval.runner.make_runtime", fake_make_runtime)
+    runner = Runner(_finishing_model(), sandbox="docker", docker_image="my-image:tag")
+    runtime = runner._build_runtime(tmp_path)
+    assert isinstance(runtime, LocalRuntime)
+    assert calls["sandbox"] == "docker"
+    assert calls["image"] == "my-image:tag"
+
+
+def test_runner_build_runtime_falls_back_on_docker_error(tmp_path, monkeypatch):
+    def fake_make_runtime(sandbox, cwd, *, image="python:3.11-slim"):
+        raise DockerError("daemon down")
+
+    monkeypatch.setattr("minicodex.eval.runner.make_runtime", fake_make_runtime)
+    runner = Runner(_finishing_model(), sandbox="docker")
+    runtime = runner._build_runtime(tmp_path)
+    assert isinstance(runtime, LocalRuntime)
+
+
+def test_runner_hidden_test_runs_in_docker_runtime(tmp_path):
+    class FakeDocker:
+        def __init__(self):
+            self.commands = []
+
+        def run_command_sync(self, command, *, timeout=None):
+            self.commands.append(command)
+            return {"output": "ok", "returncode": 0, "error": ""}
+
+        def run_pytest(self, nodes, *, timeout=120.0):
+            return {n: True for n in nodes}
+
+    rt = FakeDocker()
+    task = Task(id="t", repo="demo", instruction="x", test_command="pytest -q")
+    runner = Runner(_finishing_model())
+    passed, error, _ = runner._run_hidden_test(task, tmp_path, rt)
+    assert passed is True
+    assert error == ""
+    assert rt.commands == ["pytest -q"]
+
+
+def test_runner_matrix_runs_in_docker_runtime(tmp_path):
+    class FakeDocker:
+        def run_pytest(self, nodes, *, timeout=120.0):
+            return {n: (n == "tests/test_demo.py::test_add") for n in nodes}
+
+    rt = FakeDocker()
+    task = Task(
+        id="t",
+        repo="demo",
+        instruction="x",
+        fail_to_pass=["tests/test_demo.py::test_add"],
+        pass_to_pass=["tests/test_demo.py::test_mul"],
+    )
+    runner = Runner(_finishing_model())
+    passed, error, _ = runner._run_hidden_test(task, tmp_path, rt)
+    assert passed is False
+    assert "pass_to_pass" in error

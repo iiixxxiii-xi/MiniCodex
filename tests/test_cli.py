@@ -118,3 +118,71 @@ def test_run_with_mcp_degrades_gracefully(tmp_path):
     )
     assert result.exit_code == 0
     assert "PASS" in result.output
+
+
+def test_run_sandbox_docker_selects_docker_runtime(tmp_path, monkeypatch):
+    # --sandbox docker must route through the docker runtime factory without
+    # actually starting a container (the factory is faked).
+    import importlib
+
+    from minicodex.runtime.local import builtin_runtime
+
+    cli_main = importlib.import_module("minicodex.cli.main")
+    calls: dict = {}
+
+    def fake_make_runtime(sandbox, cwd, *, image="python:3.11-slim"):
+        calls["sandbox"] = sandbox
+        calls["image"] = image
+        return builtin_runtime(cwd=cwd)
+
+    monkeypatch.setattr(cli_main, "docker_available", lambda: True)
+    monkeypatch.setattr("minicodex.eval.runner.make_runtime", fake_make_runtime)
+
+    task_file = tmp_path / "t.json"
+    task_file.write_text(_task_json("t1"), encoding="utf-8")
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(task_file),
+            "--mock",
+            "--sandbox",
+            "docker",
+            "--output-dir",
+            str(tmp_path / "results"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert calls.get("sandbox") == "docker"
+    assert "PASS" in result.output
+
+
+def test_run_sandbox_docker_falls_back_to_local_when_daemon_down(tmp_path, monkeypatch):
+    import importlib
+
+    cli_main = importlib.import_module("minicodex.cli.main")
+    monkeypatch.setattr(cli_main, "docker_available", lambda: False)
+    task_file = tmp_path / "t.json"
+    task_file.write_text(_task_json("t1"), encoding="utf-8")
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(task_file),
+            "--mock",
+            "--sandbox",
+            "docker",
+            "--output-dir",
+            str(tmp_path / "results"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "PASS" in result.output
+    assert "local" in result.output  # warning hints at the local fallback
+
+
+def test_run_sandbox_invalid_value_errors(tmp_path):
+    task_file = tmp_path / "t.json"
+    task_file.write_text(_task_json("t1"), encoding="utf-8")
+    result = runner.invoke(app, ["run", str(task_file), "--mock", "--sandbox", "bogus"])
+    assert result.exit_code != 0

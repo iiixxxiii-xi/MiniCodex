@@ -22,12 +22,19 @@ from minicodex.controller.loop import AgentLoop
 from minicodex.core.events import Event, EventSource, SubmissionEvent
 from minicodex.eval.metrics import RunMetrics, compute_metrics
 from minicodex.eval.task import Task
-from minicodex.eval.verification import verify_workspace
+from minicodex.eval.verification import verdict_from_results, verify_workspace
+from minicodex.runtime.factory import make_runtime
 from minicodex.runtime.local import builtin_runtime
+from minicodex.runtime.sandbox.docker import DockerError
 from minicodex.toolsource.base import ToolSource
 from minicodex.toolsource.builtin import BuiltinToolSource
 
 logger = logging.getLogger(__name__)
+
+
+def _is_docker(runtime) -> bool:
+    """True when ``runtime`` can run pytest inside a container (a Docker sandbox)."""
+    return callable(getattr(runtime, "run_pytest", None))
 
 
 class RunResult(BaseModel):
@@ -70,9 +77,13 @@ class Runner:
         tool_policy: str = "all",
         retry_policy: str = "fixed",
         tool_sources: list[ToolSource] | None = None,
+        sandbox: str = "local",
+        docker_image: str = "python:3.11-slim",
     ) -> None:
         self.model = model
         self.runtime = runtime
+        self.sandbox = sandbox
+        self.docker_image = docker_image
         self.output_dir = Path(output_dir) if output_dir else None
         self.step_limit = step_limit
         self.token_limit = token_limit
@@ -95,7 +106,7 @@ class Runner:
         populated, never an unhandled exception.
         """
         repo_path = self._resolve_repo_path(task)
-        runtime = self.runtime or builtin_runtime(cwd=repo_path)
+        runtime = self._build_runtime(repo_path)
         sink = _ListSink()
         filtered = self._apply_tool_policy(runtime.schemas())
         tool_sources = None
@@ -119,27 +130,34 @@ class Runner:
 
         # The loop owns the env lifecycle: AgentLoop.run() stops the env in its
         # own ``finally``, so the runner only starts it (avoiding a double stop).
-        runtime.start()
-        output = await loop.run(task=task.instruction)
+        # A Docker container is only *removed* in the runner's ``finally`` below,
+        # after the hidden test has run inside it.
+        try:
+            runtime.start()
+            output = await loop.run(task=task.instruction)
 
-        passed, error, _ = await asyncio.to_thread(self._run_hidden_test, task, repo_path)
-        submission = await asyncio.to_thread(self._collect_patch, repo_path)
-        sink.events.append(
-            SubmissionEvent(source=EventSource.CONTROLLER, content=submission, passed=passed)
-        )
-        metrics = compute_metrics(sink.events)
+            passed, error, _ = await asyncio.to_thread(
+                self._run_hidden_test, task, repo_path, runtime
+            )
+            submission = await asyncio.to_thread(self._collect_patch, repo_path)
+            sink.events.append(
+                SubmissionEvent(source=EventSource.CONTROLLER, content=submission, passed=passed)
+            )
+            metrics = compute_metrics(sink.events)
 
-        result = RunResult(
-            task_id=task.id,
-            exit_status=output.exit_status,
-            passed=passed,
-            metrics=metrics,
-            error=error,
-        )
-        if self.output_dir is not None:
-            result.trajectory_path = str(self._persist(task, result, sink.events))
-        self._cleanup_ephemeral(repo_path)
-        return result
+            result = RunResult(
+                task_id=task.id,
+                exit_status=output.exit_status,
+                passed=passed,
+                metrics=metrics,
+                error=error,
+            )
+            if self.output_dir is not None:
+                result.trajectory_path = str(self._persist(task, result, sink.events))
+            return result
+        finally:
+            self._cleanup_runtime(runtime)
+            self._cleanup_ephemeral(repo_path)
 
     def _resolve_repo_path(self, task: Task) -> Path:
         """Return (and create if missing) the workspace directory for ``task``."""
@@ -155,6 +173,36 @@ class Runner:
         self._ephemeral_dirs.append(path)
         return path
 
+    def _build_runtime(self, repo_path: Path):
+        """Build the runtime for ``repo_path`` from the sandbox spec.
+
+        An explicit ``runtime`` wins. Otherwise ``sandbox == "docker"`` asks the
+        factory for a ``DockerRuntime`` (mounting ``repo_path``); a ``DockerError``
+        (daemon down, missing image, ...) falls back to a local runtime so a
+        failed sandbox never crashes the run.
+        """
+        if self.runtime is not None:
+            return self.runtime
+        try:
+            return make_runtime(self.sandbox, repo_path, image=self.docker_image)
+        except DockerError as exc:
+            logger.warning(
+                "Docker sandbox unavailable (%s); falling back to local sandbox "
+                "(pass --sandbox local to silence this).",
+                exc,
+            )
+            return builtin_runtime(cwd=repo_path)
+
+    def _cleanup_runtime(self, runtime) -> None:
+        """Remove a disposable sandbox (e.g. a Docker container), if it has one."""
+        cleanup = getattr(runtime, "cleanup", None)
+        if not callable(cleanup):
+            return
+        try:
+            cleanup()
+        except Exception:  # pragma: no cover - best-effort teardown
+            logger.warning("failed to clean up runtime %r", runtime, exc_info=True)
+
     def _apply_tool_policy(self, schemas: list[dict]) -> list[dict]:
         """Filter the function schemas exposed to the model by ``tool_policy``."""
         if self.tool_policy == "no_test_runner":
@@ -167,17 +215,24 @@ class Runner:
             return self.output_dir / "compaction"
         return None
 
-    def _run_hidden_test(self, task: Task, repo_path: Path) -> tuple[bool, str, str]:
+    def _run_hidden_test(self, task: Task, repo_path: Path, runtime=None) -> tuple[bool, str, str]:
         """Decide PASS/FAIL for the patched workspace.
 
         When ``fail_to_pass``/``pass_to_pass`` are populated the SWE-bench style
         test matrix is used: every ``fail_to_pass`` AND every ``pass_to_pass``
         test must pass. Otherwise the legacy ``test_command`` (exit 0) is used.
+        When ``runtime`` is a Docker sandbox the tests run inside its container
+        (against the mounted repo); otherwise they run on the host.
         """
         if task.fail_to_pass or task.pass_to_pass:
-            return verify_workspace(task, repo_path, timeout=self.hidden_test_timeout)
+            return self._verify_matrix(task, repo_path, runtime)
         if not task.test_command:
             return False, "task has no test_command; cannot determine PASS/FAIL", ""
+        if _is_docker(runtime):
+            result = runtime.run_command_sync(task.test_command, timeout=self.hidden_test_timeout)
+            if result["returncode"] != 0:
+                return False, result["error"] or f"hidden test exited {result['returncode']}", result["output"]
+            return True, "", result["output"]
         try:
             proc = subprocess.run(
                 task.test_command,
@@ -198,6 +253,14 @@ class Runner:
         if proc.stderr:
             output = f"{output}\n{proc.stderr}" if output else proc.stderr
         return proc.returncode == 0, "", output
+
+    def _verify_matrix(self, task: Task, repo_path: Path, runtime=None) -> tuple[bool, str, str]:
+        """Run the task's test matrix (in the sandbox when available) and score it."""
+        if _is_docker(runtime):
+            nodes = task.fail_to_pass + task.pass_to_pass
+            results = runtime.run_pytest(nodes, timeout=self.hidden_test_timeout)
+            return verdict_from_results(task, results)
+        return verify_workspace(task, repo_path, timeout=self.hidden_test_timeout)
 
     def _collect_patch(self, repo_path: Path) -> str:
         """Return the workspace's ``git diff`` (empty when not a git repo)."""

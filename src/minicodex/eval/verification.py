@@ -78,6 +78,31 @@ def run_tests(workspace: Path, node_ids: list[str], timeout: float = 120.0) -> d
     return results
 
 
+def verdict_from_results(task: Task, results: dict[str, bool]) -> tuple[bool, str, str]:
+    """Compute the SWE-bench PASS/FAIL verdict from per-node results.
+
+    ``results`` maps each node id to whether it passed. ``passed`` is True only
+    when every ``fail_to_pass`` AND every ``pass_to_pass`` test passed; a task
+    with no matrix at all is a failure (there is nothing to verify).
+    """
+    ftp = task.fail_to_pass
+    ptp = task.pass_to_pass
+    if not ftp and not ptp:
+        return False, "task has no fail_to_pass/pass_to_pass; cannot determine PASS/FAIL", ""
+
+    ftp_failed = [n for n in ftp if not results.get(n, False)]
+    ptp_failed = [n for n in ptp if not results.get(n, False)]
+
+    errors: list[str] = []
+    if ftp_failed:
+        errors.append(f"fail_to_pass failed: {ftp_failed}")
+    if ptp_failed:
+        errors.append(f"pass_to_pass failed: {ptp_failed}")
+    if errors:
+        return False, "; ".join(errors), ""
+    return True, "", ""
+
+
 def verify_workspace(task: Task, workspace: Path, timeout: float = 120.0) -> tuple[bool, str, str]:
     """Verdict for a patched workspace against ``task``'s test matrix.
 
@@ -91,17 +116,7 @@ def verify_workspace(task: Task, workspace: Path, timeout: float = 120.0) -> tup
         return False, "task has no fail_to_pass/pass_to_pass; cannot determine PASS/FAIL", ""
 
     results = run_tests(workspace, ftp + ptp, timeout=timeout)
-    ftp_failed = [n for n in ftp if not results[n]]
-    ptp_failed = [n for n in ptp if not results[n]]
-
-    errors: list[str] = []
-    if ftp_failed:
-        errors.append(f"fail_to_pass failed: {ftp_failed}")
-    if ptp_failed:
-        errors.append(f"pass_to_pass failed: {ptp_failed}")
-    if errors:
-        return False, "; ".join(errors), ""
-    return True, "", ""
+    return verdict_from_results(task, results)
 
 
 def _run_grouped(workspace: Path, node_ids: list[str], timeout: float):
@@ -212,4 +227,11 @@ def verify_gold_patch(task: Task, timeout: float = 120.0) -> GoldVerification:
     return result
 
 
-__all__ = ["GoldVerification", "apply_gold_patch", "run_tests", "verify_gold_patch", "verify_workspace"]
+__all__ = [
+    "GoldVerification",
+    "apply_gold_patch",
+    "run_tests",
+    "verdict_from_results",
+    "verify_gold_patch",
+    "verify_workspace",
+]

@@ -29,6 +29,7 @@ from minicodex.eval.task import load_task, load_tasks
 from minicodex.model.anthropic import AnthropicModel
 from minicodex.model.mock import MockModel
 from minicodex.model.openai import OpenAIModel
+from minicodex.runtime.sandbox.docker import docker_available
 from minicodex.toolsource.mcp import mcp_tool_source
 
 load_dotenv()
@@ -69,6 +70,21 @@ def _build_tool_sources(mcp: list[str] | None):
     return [mcp_tool_source(spec) for spec in mcp]
 
 
+def _resolve_sandbox(sandbox: str) -> str:
+    """Validate ``--sandbox`` and downgrade ``docker`` to ``local`` when the daemon
+    is unreachable, printing a clear hint instead of crashing."""
+    if sandbox not in ("local", "docker"):
+        raise typer.BadParameter(f"unrecognized sandbox '{sandbox}'; use 'local' or 'docker'")
+    if sandbox == "docker" and not docker_available():
+        typer.echo(
+            "warning: Docker daemon is unavailable; falling back to local sandbox "
+            "(pass --sandbox local to silence this).",
+            err=True,
+        )
+        return "local"
+    return sandbox
+
+
 @app.command("run")
 def run_cmd(
     task: str = typer.Argument(..., help="Path to a task JSON file."),
@@ -77,6 +93,7 @@ def run_cmd(
     mock: bool = typer.Option(False, "--mock", help="Force MockModel (no API key)."),
     step_limit: int = typer.Option(0, "--step-limit", help="Max steps (0 = unlimited)."),
     max_requeries: int = typer.Option(3, "--max-requeries", help="Retry requeries on errors."),
+    sandbox: str = typer.Option("local", "--sandbox", help="Sandbox: 'local' or 'docker'."),
     mcp: list[str] = typer.Option(
         None,
         "--mcp",
@@ -96,6 +113,7 @@ def run_cmd(
         step_limit=step_limit,
         max_requeries=max_requeries,
         tool_sources=_build_tool_sources(mcp),
+        sandbox=_resolve_sandbox(sandbox),
     )
     result = asyncio.run(runner.run(task_obj))
     verdict = "PASS" if result.passed else "FAIL"
@@ -152,6 +170,7 @@ def eval_cmd(
     output_dir: str = typer.Option("results", "--output-dir", help="Where to write results + report."),
     mock: bool = typer.Option(False, "--mock", help="Force MockModel (no API key)."),
     concurrency: int = typer.Option(4, "--concurrency", help="Max tasks to run concurrently."),
+    sandbox: str = typer.Option("local", "--sandbox", help="Sandbox: 'local' or 'docker'."),
 ) -> None:
     """Run a task set under every policy preset (ablation) and write a report."""
     try:
@@ -178,6 +197,7 @@ def eval_cmd(
             presets=presets,
             output_dir=output_dir,
             concurrency=concurrency,
+            sandbox=_resolve_sandbox(sandbox),
         )
     )
     dump_ablation_results(results, output_dir)

@@ -111,6 +111,8 @@ async def run_ablation(
     presets: list[AblationPreset] | None = None,
     output_dir: str | Path | None = None,
     concurrency: int = 4,
+    sandbox: str = "local",
+    docker_image: str = "python:3.11-slim",
 ) -> list[AblationResult]:
     """Run ``tasks`` under every preset and return one :class:`AblationResult`
     per preset (each carrying per-task results + aggregated metrics).
@@ -133,6 +135,8 @@ async def run_ablation(
             context_policy=preset.context_policy,
             tool_policy=preset.tool_policy,
             retry_policy=preset.retry_policy,
+            sandbox=sandbox,
+            docker_image=docker_image,
         )
         run_results = await asyncio.gather(
             *(_run_one(runner, task, semaphore) for task in tasks)
