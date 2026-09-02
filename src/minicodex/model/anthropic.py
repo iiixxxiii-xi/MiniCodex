@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 
-from minicodex.model.base import ModelError, ModelResponse, ToolCall, Usage
+from minicodex.model.base import ModelError, ModelResponse, ToolCall, ToolCallDelta, Usage
 from minicodex.model.retry import with_retry
+from minicodex.model.schema import drop_invalid_tool_calls, to_anthropic_tool
 from minicodex.model.usage import compute_cost
 
 logger = logging.getLogger(__name__)
@@ -140,13 +141,14 @@ class AnthropicModel:
         self._ensure_not_cancelled()
         client = self._get_client()
         system, payload = to_anthropic_messages(messages)
+        anthropic_tools = [to_anthropic_tool(t) for t in tools] if tools else []
 
         async def call():
             kwargs = {
                 "model": self.model,
                 "max_tokens": self.max_tokens,
                 "messages": payload,
-                "tools": tools,
+                "tools": anthropic_tools,
             }
             if system:
                 kwargs["system"] = system
@@ -156,24 +158,72 @@ class AnthropicModel:
             message = await with_retry(call, max_attempts=self.max_attempts, log=logger)
         except Exception as exc:
             raise ModelError(f"Anthropic model '{self.model}' call failed: {exc}") from exc
-        return anthropic_message_to_response(message, model=self.model)
+        result = anthropic_message_to_response(message, model=self.model)
+        return drop_invalid_tool_calls(result, anthropic_tools)
 
     async def stream(self, messages: list[dict], tools: list[dict]):
         self._ensure_not_cancelled()
         client = self._get_client()
         system, payload = to_anthropic_messages(messages)
+        anthropic_tools = [to_anthropic_tool(t) for t in tools] if tools else []
         try:
             kwargs = {
                 "model": self.model,
                 "max_tokens": self.max_tokens,
                 "messages": payload,
-                "tools": tools,
+                "tools": anthropic_tools,
             }
             if system:
                 kwargs["system"] = system
             async with client.messages.stream(**kwargs) as stream:
-                message = await stream.get_final_message()
-                yield anthropic_message_to_response(message, model=self.model)
+                input_tokens = 0
+                output_tokens = 0
+                stop_reason = ""
+                async for event in stream:
+                    event_type = _get(event, "type", "")
+                    if event_type == "message_start":
+                        message = _get(event, "message") or {}
+                        usage = _get(message, "usage") or {}
+                        input_tokens = int(_get(usage, "input_tokens", 0) or 0)
+                    elif event_type == "content_block_start":
+                        block = _get(event, "content_block") or {}
+                        if _get(block, "type", "") == "tool_use":
+                            yield ModelResponse(
+                                tool_call_deltas=[
+                                    ToolCallDelta(
+                                        index=int(_get(event, "index", 0) or 0),
+                                        id=_get(block, "id", "") or "",
+                                        name=_get(block, "name", "") or "",
+                                    )
+                                ]
+                            )
+                    elif event_type == "content_block_delta":
+                        delta = _get(event, "delta") or {}
+                        delta_type = _get(delta, "type", "")
+                        if delta_type == "text_delta":
+                            yield ModelResponse(thought=_get(delta, "text", "") or "")
+                        elif delta_type == "input_json_delta":
+                            yield ModelResponse(
+                                tool_call_deltas=[
+                                    ToolCallDelta(
+                                        index=int(_get(event, "index", 0) or 0),
+                                        arguments=_get(delta, "partial_json", "") or "",
+                                    )
+                                ]
+                            )
+                    elif event_type == "message_delta":
+                        delta = _get(event, "delta") or {}
+                        stop_reason = _get(delta, "stop_reason", "") or stop_reason
+                        usage = _get(event, "usage") or {}
+                        output_tokens = int(_get(usage, "output_tokens", 0) or 0)
+                yield ModelResponse(
+                    usage=Usage(
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        cost_usd=compute_cost(self.model, input_tokens, output_tokens),
+                    ),
+                    stop_reason=stop_reason,
+                )
         except Exception as exc:
             raise ModelError(f"Anthropic model '{self.model}' stream failed: {exc}") from exc
 

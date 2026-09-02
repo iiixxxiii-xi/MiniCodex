@@ -153,3 +153,154 @@ async def test_openai_model_cancelled_raises():
     await m.cancel()
     with pytest.raises(ModelError):
         await m.query([], [])
+
+
+class _Delta:
+    def __init__(self, content=None, tool_calls=None):
+        self.content = content
+        self.tool_calls = tool_calls
+
+
+class _StreamChoice:
+    def __init__(self, delta):
+        self.delta = delta
+
+
+class _StreamChunk:
+    def __init__(self, delta):
+        self.choices = [_StreamChoice(delta)]
+
+
+class _AsyncChunks:
+    def __init__(self, chunks):
+        self._chunks = list(chunks)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if not self._chunks:
+            raise StopAsyncIteration
+        return self._chunks.pop(0)
+
+
+class _StreamingCompletions:
+    def __init__(self, chunks):
+        self._chunks = chunks
+        self.captured = []
+
+    async def create(self, **kwargs):
+        self.captured.append(kwargs)
+        return _AsyncChunks(self._chunks)
+
+
+class _StreamingChat:
+    def __init__(self, chunks):
+        self.completions = _StreamingCompletions(chunks)
+
+
+class _StreamingClient:
+    def __init__(self, chunks):
+        self.chat = _StreamingChat(chunks)
+
+
+async def test_openai_query_sends_strict_tool_schemas():
+    client = _CapturingClient()
+    model = OpenAIModel(model="gpt-4o-mini", client=client)
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "shell",
+                "description": "run",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"command": {"type": "string"}},
+                    "required": ["command"],
+                },
+            },
+        }
+    ]
+    await model.query([{"role": "user", "content": "hi"}], tools=tools)
+    sent = client.captured[0]["tools"][0]
+    assert sent["function"]["name"] == "shell"
+    assert sent["function"]["strict"] is True
+    assert sent["function"]["parameters"]["additionalProperties"] is False
+    assert sent["function"]["parameters"]["required"] == ["command"]
+
+
+class _ToolCallResponse:
+    def __init__(self, tool_calls):
+        self.choices = [_ToolCallChoice(tool_calls)]
+        self.usage = {"prompt_tokens": 1, "completion_tokens": 1}
+
+
+class _ToolCallChoice:
+    def __init__(self, tool_calls):
+        self.message = {"content": None, "tool_calls": tool_calls}
+        self.finish_reason = "tool_calls"
+
+
+class _ToolCallCompletions:
+    def __init__(self, tool_calls):
+        self._tool_calls = tool_calls
+        self.captured = []
+
+    async def create(self, **kwargs):
+        self.captured.append(kwargs)
+        return _ToolCallResponse(self._tool_calls)
+
+
+class _ToolCallChat:
+    def __init__(self, tool_calls):
+        self.completions = _ToolCallCompletions(tool_calls)
+
+
+class _ToolCallClient:
+    def __init__(self, tool_calls):
+        self.chat = _ToolCallChat(tool_calls)
+
+
+async def test_openai_query_drops_tool_call_with_invalid_arguments():
+    tool_calls = [{"id": "call_1", "function": {"name": "shell", "arguments": '{"command": 123}'}}]
+    client = _ToolCallClient(tool_calls)
+    model = OpenAIModel(model="gpt-4o-mini", client=client)
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "shell",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"command": {"type": "string"}},
+                    "required": ["command"],
+                },
+            },
+        }
+    ]
+    result = await model.query([{"role": "user", "content": "hi"}], tools=tools)
+    assert result.tool_calls == []
+
+
+async def test_openai_stream_yields_text_and_tool_call_deltas():
+    tool_delta = {
+        "index": 0,
+        "id": "call_1",
+        "type": "function",
+        "function": {"name": "shell", "arguments": '{"command": "ls"}'},
+    }
+    chunks = [
+        _StreamChunk(_Delta(content="Let me ")),
+        _StreamChunk(_Delta(tool_calls=[tool_delta])),
+    ]
+    client = _StreamingClient(chunks)
+    model = OpenAIModel(model="gpt-4o-mini", client=client)
+    out = [chunk async for chunk in model.stream([], [])]
+
+    assert "".join(c.thought for c in out) == "Let me "
+    deltas = [d for c in out for d in c.tool_call_deltas]
+    assert len(deltas) == 1
+    assert deltas[0].index == 0
+    assert deltas[0].id == "call_1"
+    assert deltas[0].name == "shell"
+    assert deltas[0].arguments == '{"command": "ls"}'

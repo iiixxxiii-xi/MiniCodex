@@ -96,3 +96,131 @@ async def test_anthropic_model_cancelled_raises():
     await m.cancel()
     with pytest.raises(ModelError):
         await m.query([], [])
+
+
+class _CapturingAnthropicMessages:
+    def __init__(self):
+        self.captured = []
+
+    async def create(self, **kwargs):
+        self.captured.append(kwargs)
+        return {"content": [], "usage": {"input_tokens": 1, "output_tokens": 1}, "stop_reason": "end_turn"}
+
+
+class _CapturingAnthropicClient:
+    def __init__(self):
+        self.messages = _CapturingAnthropicMessages()
+
+
+class _ToolCallAnthropicMessages:
+    def __init__(self, message):
+        self._message = message
+
+    async def create(self, **kwargs):
+        return self._message
+
+
+class _ToolCallAnthropicClient:
+    def __init__(self, message):
+        self.messages = _ToolCallAnthropicMessages(message)
+
+
+_SHELL_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "shell",
+            "description": "run",
+            "parameters": {
+                "type": "object",
+                "properties": {"command": {"type": "string"}},
+                "required": ["command"],
+            },
+        },
+    }
+]
+
+
+async def test_anthropic_query_sends_input_schema():
+    client = _CapturingAnthropicClient()
+    model = AnthropicModel(model="claude-sonnet-4-5", client=client)
+    await model.query([{"role": "user", "content": "hi"}], tools=_SHELL_TOOLS)
+    sent = client.messages.captured[0]["tools"][0]
+    assert sent["name"] == "shell"
+    assert sent["description"] == "run"
+    assert sent["input_schema"] == {
+        "type": "object",
+        "properties": {"command": {"type": "string"}},
+        "required": ["command"],
+    }
+    assert "function" not in sent
+
+
+async def test_anthropic_query_drops_tool_call_with_invalid_arguments():
+    message = {
+        "content": [{"type": "tool_use", "id": "call_1", "name": "shell", "input": {"command": 123}}],
+        "usage": {"input_tokens": 1, "output_tokens": 1},
+        "stop_reason": "tool_use",
+    }
+    client = _ToolCallAnthropicClient(message)
+    model = AnthropicModel(model="claude-sonnet-4-5", client=client)
+    result = await model.query([{"role": "user", "content": "hi"}], tools=_SHELL_TOOLS)
+    assert result.tool_calls == []
+
+
+from types import SimpleNamespace
+
+
+class _FakeAnthropicStream:
+    def __init__(self, events):
+        self._events = list(events)
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if not self._events:
+            raise StopAsyncIteration
+        return self._events.pop(0)
+
+
+class _StreamingAnthropicMessages:
+    def __init__(self, events):
+        self._events = events
+        self.captured = []
+
+    def stream(self, **kwargs):
+        self.captured.append(kwargs)
+        return _FakeAnthropicStream(self._events)
+
+
+class _StreamingAnthropicClient:
+    def __init__(self, events):
+        self.messages = _StreamingAnthropicMessages(events)
+
+
+async def test_anthropic_stream_yields_incremental_deltas():
+    events = [
+        SimpleNamespace(type="message_start", message=SimpleNamespace(usage=SimpleNamespace(input_tokens=10))),
+        SimpleNamespace(type="content_block_start", index=0, content_block=SimpleNamespace(type="tool_use", id="call_1", name="shell")),
+        SimpleNamespace(type="content_block_delta", index=0, delta=SimpleNamespace(type="input_json_delta", partial_json='{"command": "ls"}')),
+        SimpleNamespace(type="content_block_delta", index=0, delta=SimpleNamespace(type="text_delta", text="done")),
+        SimpleNamespace(type="message_delta", delta=SimpleNamespace(stop_reason="tool_use"), usage=SimpleNamespace(output_tokens=5)),
+    ]
+    client = _StreamingAnthropicClient(events)
+    model = AnthropicModel(model="claude-sonnet-4-5", client=client)
+    out = [chunk async for chunk in model.stream([], [])]
+
+    assert "".join(c.thought for c in out) == "done"
+    deltas = [d for c in out for d in c.tool_call_deltas]
+    assert any(d.name == "shell" and d.id == "call_1" and d.index == 0 for d in deltas)
+    assert any(d.arguments == '{"command": "ls"}' for d in deltas)
+    assert out[-1].stop_reason == "tool_use"
+    assert out[-1].usage.input_tokens == 10
+    assert out[-1].usage.output_tokens == 5

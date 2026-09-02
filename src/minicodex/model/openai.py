@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 import logging
 
-from minicodex.model.base import ModelError, ModelResponse, ToolCall, Usage
+from minicodex.model.base import ModelError, ModelResponse, ToolCall, ToolCallDelta, Usage
 from minicodex.model.retry import with_retry
+from minicodex.model.schema import drop_invalid_tool_calls, to_strict_tool_schema
 from minicodex.model.usage import compute_cost
 
 logger = logging.getLogger(__name__)
@@ -140,12 +141,13 @@ class OpenAIModel:
         self._ensure_not_cancelled()
         client = self._get_client()
         payload = to_openai_messages(messages)
+        strict_tools = [to_strict_tool_schema(t) for t in tools] if tools else []
 
         async def call():
             return await client.chat.completions.create(
                 model=self.model,
                 messages=payload,
-                tools=tools,
+                tools=strict_tools,
             )
 
         try:
@@ -153,30 +155,46 @@ class OpenAIModel:
         except Exception as exc:
             raise ModelError(f"OpenAI model '{self.model}' call failed: {exc}") from exc
         choice = response.choices[0]
-        return openai_message_to_response(
+        result = openai_message_to_response(
             choice.message,
             usage=response.usage,
             finish_reason=choice.finish_reason,
             model=self.model,
         )
+        return drop_invalid_tool_calls(result, strict_tools)
 
     async def stream(self, messages: list[dict], tools: list[dict]):
         self._ensure_not_cancelled()
         client = self._get_client()
         payload = to_openai_messages(messages)
+        strict_tools = [to_strict_tool_schema(t) for t in tools] if tools else []
         try:
             stream = await client.chat.completions.create(
                 model=self.model,
                 messages=payload,
-                tools=tools,
+                tools=strict_tools,
                 stream=True,
             )
             async for chunk in stream:
                 if not chunk.choices:
                     continue
                 delta = chunk.choices[0].delta
-                if delta is not None and delta.content is not None:
-                    yield ModelResponse(thought=delta.content)
+                if delta is None:
+                    continue
+                deltas: list[ToolCallDelta] = []
+                for tc in delta.tool_calls or []:
+                    function = _get(tc, "function") or {}
+                    deltas.append(
+                        ToolCallDelta(
+                            index=int(_get(tc, "index", 0) or 0),
+                            id=_get(tc, "id", "") or "",
+                            name=_get(function, "name", "") or "",
+                            arguments=_get(function, "arguments", "") or "",
+                        )
+                    )
+                thought = delta.content or ""
+                if thought or deltas:
+                    yield ModelResponse(thought=thought, tool_call_deltas=deltas)
         except Exception as exc:
             raise ModelError(f"OpenAI model '{self.model}' stream failed: {exc}") from exc
 
