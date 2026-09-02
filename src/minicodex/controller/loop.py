@@ -159,6 +159,7 @@ class AgentLoop:
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
                 cost_usd=response.usage.cost_usd,
+                latency_ms=model_latency_ms,
             )
         )
         tool_calls = [{"id": tc.id, "name": tc.name, "arguments": tc.arguments} for tc in response.tool_calls]
@@ -183,6 +184,7 @@ class AgentLoop:
             )
             self._emit(action_event)
             source = self._source_for(tool_call.name)
+            tool_start = time.monotonic()
             observation = await source.call(action["name"], action["arguments"])
             self._emit(
                 ObservationEvent(
@@ -191,6 +193,7 @@ class AgentLoop:
                     tool_call_id=tool_call.id,
                     action_id=action_event.id,
                     observation=observation,
+                    latency_ms=(time.monotonic() - tool_start) * 1000,
                 )
             )
             observation_text = self.context_policy.process_observation(repr(observation))

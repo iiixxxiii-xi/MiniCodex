@@ -2,6 +2,8 @@
 the single source of truth that the eval layer (Phase 9) replays to compute
 metrics."""
 
+import asyncio
+
 from minicodex.controller.loop import AgentLoop
 from minicodex.core.events import (
     ActionEvent,
@@ -11,6 +13,7 @@ from minicodex.core.events import (
     ObservationEvent,
     StepEvent,
 )
+from minicodex.model.base import ModelResponse
 from minicodex.model.mock import MockModel
 
 
@@ -25,6 +28,48 @@ class ListSink:
 class FakeEnv:
     async def execute(self, action):
         return {"output": "ok", "returncode": 0}
+
+
+class SlowEnv:
+    async def execute(self, action):
+        await asyncio.sleep(0.05)
+        return {"output": "ok", "returncode": 0}
+
+
+class SlowModel:
+    async def query(self, messages, tools):
+        await asyncio.sleep(0.05)
+        return ModelResponse(thought="hi")
+
+    async def stream(self, messages, tools):
+        yield ModelResponse(thought="hi")
+
+    async def cancel(self):
+        pass
+
+
+async def test_loop_emits_model_call_latency():
+    sink = ListSink()
+    loop = AgentLoop(model=SlowModel(), env=FakeEnv(), event_sink=sink, model_name="slow")
+    await loop.run(task="x")
+
+    model_calls = [e for e in sink.events if isinstance(e, ModelCallEvent)]
+    assert len(model_calls) == 1
+    assert model_calls[0].latency_ms > 0
+
+
+async def test_loop_emits_tool_call_latency():
+    model = MockModel(script=[
+        {"tool_calls": [{"id": "1", "name": "shell", "arguments": {"command": "ls"}}]},
+        {"tool_calls": []},
+    ])
+    sink = ListSink()
+    loop = AgentLoop(model=model, env=SlowEnv(), event_sink=sink)
+    await loop.run(task="x")
+
+    observations = [e for e in sink.events if isinstance(e, ObservationEvent)]
+    assert len(observations) == 1
+    assert observations[0].latency_ms > 0
 
 
 async def test_loop_emits_model_call_and_step_events():

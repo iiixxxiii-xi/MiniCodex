@@ -41,16 +41,18 @@ class ObservationEvent(Event):
     tool_call_id: str
     action_id: str
     observation: dict
+    latency_ms: float = 0.0
 
 
 class ModelCallEvent(Event):
-    """A completed model query with its token usage and cost."""
+    """A completed model query with its token usage, cost, and latency."""
 
     kind: str = "model_call"
     model: str = ""
     input_tokens: int = 0
     output_tokens: int = 0
     cost_usd: float = 0.0
+    latency_ms: float = 0.0
 
 
 class StepEvent(Event):
