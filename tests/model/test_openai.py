@@ -304,3 +304,28 @@ async def test_openai_stream_yields_text_and_tool_call_deltas():
     assert deltas[0].id == "call_1"
     assert deltas[0].name == "shell"
     assert deltas[0].arguments == '{"command": "ls"}'
+
+
+def test_openai_message_to_response_preserves_reasoning_content():
+    message = {"content": None, "reasoning_content": "Let me think...", "tool_calls": []}
+    r = openai_message_to_response(message, finish_reason="stop")
+    assert r.reasoning_content == "Let me think..."
+
+
+def test_openai_message_to_response_defaults_reasoning_content_empty():
+    r = openai_message_to_response({"content": "hi"})
+    assert r.reasoning_content == ""
+
+
+def test_to_openai_messages_echoes_reasoning_content():
+    messages = [
+        {"role": "assistant", "content": "", "reasoning_content": "plan", "tool_calls": []},
+    ]
+    out = to_openai_messages(messages)
+    assert out[0]["reasoning_content"] == "plan"
+
+
+def test_to_openai_messages_omits_empty_reasoning_content():
+    messages = [{"role": "assistant", "content": "done"}]
+    out = to_openai_messages(messages)
+    assert "reasoning_content" not in out[0]

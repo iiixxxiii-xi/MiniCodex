@@ -35,6 +35,7 @@ class Usage(BaseModel):
 
 class ModelResponse(BaseModel):
     thought: str = ""
+    reasoning_content: str = ""
     tool_calls: list[ToolCall] = Field(default_factory=list)
     tool_call_deltas: list[ToolCallDelta] = Field(default_factory=list)
     usage: Usage = Field(default_factory=Usage)

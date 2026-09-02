@@ -44,6 +44,9 @@ def to_openai_messages(messages: list[dict]) -> list[dict]:
             )
         elif role == "assistant":
             entry: dict = {"role": "assistant", "content": content}
+            reasoning_content = message.get("reasoning_content", "") or ""
+            if reasoning_content:
+                entry["reasoning_content"] = reasoning_content
             tool_calls = message.get("tool_calls") or []
             if tool_calls:
                 entry["tool_calls"] = [
@@ -92,6 +95,7 @@ def openai_message_to_response(
     output_tokens = int(_get(usage, "completion_tokens", 0) or 0)
     return ModelResponse(
         thought=_get(message, "content", "") or "",
+        reasoning_content=_get(message, "reasoning_content", "") or "",
         tool_calls=tool_calls,
         usage=Usage(
             input_tokens=input_tokens,

@@ -1,6 +1,6 @@
 from minicodex.controller.loop import AgentLoop
 from minicodex.controller.policies.retry import RequeryPolicy
-from minicodex.model.base import ModelError, ModelResponse, ToolCallDelta, Usage
+from minicodex.model.base import ModelError, ModelResponse, ToolCall, ToolCallDelta, Usage
 from minicodex.model.mock import MockModel
 
 
@@ -351,3 +351,33 @@ async def test_loop_context_policy_sliding_drops_old_messages():
     # after each step only the system + last 2 non-system messages remain
     non_system = [m for m in loop.messages if m["role"] != "system"]
     assert len(non_system) <= 2
+
+
+class ReasoningModel:
+    """Returns ``reasoning_content`` on its first turn, then a plain done."""
+
+    def __init__(self):
+        self.query_calls = 0
+
+    async def query(self, messages, tools):
+        self.query_calls += 1
+        if self.query_calls == 1:
+            return ModelResponse(
+                reasoning_content="I'll check the files",
+                tool_calls=[ToolCall(id="c1", name="shell", arguments={"command": "ls"})],
+            )
+        return ModelResponse(thought="done")
+
+    async def stream(self, messages, tools):
+        yield ModelResponse(thought="stream")
+
+    async def cancel(self):
+        pass
+
+
+async def test_loop_stores_reasoning_content_on_assistant_message():
+    model = ReasoningModel()
+    loop = AgentLoop(model=model, env=FakeEnv())
+    await loop.run(task="x")
+    assistant = next(m for m in loop.messages if m["role"] == "assistant" and m.get("tool_calls"))
+    assert assistant["reasoning_content"] == "I'll check the files"
