@@ -23,15 +23,15 @@ class ListSink:
 
 
 class FakeEnv:
-    def execute(self, action):
+    async def execute(self, action):
         return {"output": "ok", "returncode": 0}
 
 
-def test_loop_emits_model_call_and_step_events():
+async def test_loop_emits_model_call_and_step_events():
     model = MockModel(script=[{"tool_calls": []}])
     sink = ListSink()
     loop = AgentLoop(model=model, env=FakeEnv(), event_sink=sink, model_name="mock")
-    loop.run(task="x")
+    await loop.run(task="x")
 
     model_calls = [e for e in sink.events if isinstance(e, ModelCallEvent)]
     steps = [e for e in sink.events if isinstance(e, StepEvent)]
@@ -42,14 +42,14 @@ def test_loop_emits_model_call_and_step_events():
     assert steps[0].step_index == 0
 
 
-def test_loop_emits_action_and_linked_observation():
+async def test_loop_emits_action_and_linked_observation():
     model = MockModel(script=[
         {"tool_calls": [{"id": "1", "name": "shell", "arguments": {"command": "ls"}}]},
         {"tool_calls": []},
     ])
     sink = ListSink()
     loop = AgentLoop(model=model, env=FakeEnv(), event_sink=sink)
-    loop.run(task="x")
+    await loop.run(task="x")
 
     actions = [e for e in sink.events if isinstance(e, ActionEvent)]
     observations = [e for e in sink.events if isinstance(e, ObservationEvent)]
@@ -60,11 +60,11 @@ def test_loop_emits_action_and_linked_observation():
     assert observations[0].tool_call_id == "1"
 
 
-def test_loop_emits_invalid_tool_call_and_error_events():
+async def test_loop_emits_invalid_tool_call_and_error_events():
     model = MockModel(script=[{"tool_calls": [{"id": "1", "name": "", "arguments": {}}]}])
     sink = ListSink()
     loop = AgentLoop(model=model, env=FakeEnv(), event_sink=sink, max_requeries=2)
-    result = loop.run(task="x")
+    result = await loop.run(task="x")
 
     assert result.exit_status == "RepeatedFormatError"
     invalid = [e for e in sink.events if isinstance(e, InvalidToolCallEvent)]
@@ -75,8 +75,8 @@ def test_loop_emits_invalid_tool_call_and_error_events():
     assert all(e.error_type == "FormatError" for e in errors)
 
 
-def test_loop_without_sink_emits_nothing():
+async def test_loop_without_sink_emits_nothing():
     model = MockModel(script=[{"tool_calls": []}])
     loop = AgentLoop(model=model, env=FakeEnv())
-    result = loop.run(task="x")
+    result = await loop.run(task="x")
     assert result.exit_status == "finished"

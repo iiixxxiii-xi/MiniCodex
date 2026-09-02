@@ -16,7 +16,7 @@ class _FailingClient:
     class chat:
         class completions:
             @staticmethod
-            def create(**kwargs):
+            async def create(**kwargs):
                 raise _StatusError(400)
 
 
@@ -37,7 +37,7 @@ class _Completions:
     def __init__(self, capture):
         self._capture = capture
 
-    def create(self, **kwargs):
+    async def create(self, **kwargs):
         self._capture.append(kwargs)
         return _FakeResponse()
 
@@ -84,7 +84,7 @@ def test_to_openai_messages_converts_function_calling():
     assert "extra" not in tool
 
 
-def test_openai_query_sends_function_calling_protocol():
+async def test_openai_query_sends_function_calling_protocol():
     client = _CapturingClient()
     model = OpenAIModel(model="gpt-4o-mini", client=client)
     messages = [
@@ -95,7 +95,7 @@ def test_openai_query_sends_function_calling_protocol():
         ]},
         {"role": "tool", "content": "out", "tool_call_id": "call_1", "tool_name": "shell"},
     ]
-    model.query(messages, tools=[])
+    await model.query(messages, tools=[])
 
     sent = client.captured[0]["messages"]
     tool_msg = sent[3]
@@ -142,14 +142,14 @@ def test_openai_model_instantiates_without_client():
     assert m.model == "gpt-4o-mini"
 
 
-def test_openai_model_wraps_client_error():
+async def test_openai_model_wraps_client_error():
     m = OpenAIModel(model="gpt-4o-mini", client=_FailingClient())
     with pytest.raises(ModelError):
-        m.query([], [])
+        await m.query([], [])
 
 
-def test_openai_model_cancelled_raises():
+async def test_openai_model_cancelled_raises():
     m = OpenAIModel(model="gpt-4o-mini")
-    m.cancel()
+    await m.cancel()
     with pytest.raises(ModelError):
-        m.query([], [])
+        await m.query([], [])

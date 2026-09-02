@@ -71,18 +71,18 @@ def test_tool_to_schema_handles_missing_description_and_schema():
     assert schema["function"]["parameters"] == {}
 
 
-def test_call_forwards_and_returns_structured_success():
+async def test_call_forwards_and_returns_structured_success():
     client = MockClient(results={"search": {"output": "found it", "is_error": False}})
     source = McpToolSource(client)
-    result = source.call("search", {"q": "x"})
+    result = await source.call("search", {"q": "x"})
     assert result == {"output": "found it", "returncode": 0, "error": ""}
     assert client.calls == [("search", {"q": "x"})]
 
 
-def test_call_marks_server_reported_error_as_failure():
+async def test_call_marks_server_reported_error_as_failure():
     client = MockClient(results={"search": {"output": "bad", "is_error": True}})
     source = McpToolSource(client)
-    result = source.call("search", {})
+    result = await source.call("search", {})
     assert result["returncode"] != 0
     assert result["error"] == "bad"
 
@@ -94,29 +94,29 @@ def test_connection_failure_degrades_schemas_to_empty():
     assert source.schemas() == []
 
 
-def test_connection_failure_call_returns_structured_error():
+async def test_connection_failure_call_returns_structured_error():
     client = MockClient()
     client.list_error = McpConnectionError("connection refused")
     source = McpToolSource(client)
     source.schemas()  # triggers the connection failure
-    result = source.call("search", {})
+    result = await source.call("search", {})
     assert result["returncode"] != 0
     assert result["error"]
     assert result["retryable"] is True
 
 
-def test_call_failure_returns_structured_error_not_raise():
+async def test_call_failure_returns_structured_error_not_raise():
     client = MockClient(results={"search": McpCallError("tool blew up")})
     source = McpToolSource(client)
-    result = source.call("search", {})
+    result = await source.call("search", {})
     assert result["returncode"] != 0
     assert result["error"] == "tool blew up"
 
 
-def test_unexpected_exception_is_degraded_to_structured_error():
+async def test_unexpected_exception_is_degraded_to_structured_error():
     client = MockClient(results={"search": RuntimeError("boom")})
     source = McpToolSource(client)
-    result = source.call("search", {})
+    result = await source.call("search", {})
     assert result["returncode"] != 0
     assert result["error"]
 

@@ -13,7 +13,7 @@ class RecordingRuntime:
     def __init__(self):
         self.calls = []
 
-    def execute(self, action):
+    async def execute(self, action):
         self.calls.append(action)
         return {"output": f"builtin:{action['name']}", "returncode": 0, "error": ""}
 
@@ -34,7 +34,7 @@ class EchoSource:
             }
         ]
 
-    def call(self, name, arguments):
+    async def call(self, name, arguments):
         self.calls.append((name, arguments))
         return {"output": f"{self.name}:{name}", "returncode": 0, "error": ""}
 
@@ -43,19 +43,19 @@ class CaptureModel:
     def __init__(self):
         self.tools_seen = []
 
-    def query(self, messages, tools):
+    async def query(self, messages, tools):
         self.tools_seen = list(tools)
         return ModelResponse()
 
-    def stream(self, messages, tools):
+    async def stream(self, messages, tools):
         self.tools_seen = list(tools)
-        return iter([ModelResponse()])
+        yield ModelResponse()
 
-    def cancel(self):
+    async def cancel(self):
         pass
 
 
-def test_loop_merges_schemas_from_all_sources():
+async def test_loop_merges_schemas_from_all_sources():
     runtime = RecordingRuntime()
     builtin = BuiltinToolSource(
         runtime, schemas=[{"type": "function", "function": {"name": "shell"}}]
@@ -63,12 +63,12 @@ def test_loop_merges_schemas_from_all_sources():
     mcp = EchoSource("mcp", "search")
     model = CaptureModel()
     loop = AgentLoop(model=model, env=runtime, tool_sources=[builtin, mcp])
-    loop.run(task="x")
+    await loop.run(task="x")
     names = [s["function"]["name"] for s in model.tools_seen]
     assert names == ["shell", "search"]
 
 
-def test_loop_dispatches_call_to_matching_source():
+async def test_loop_dispatches_call_to_matching_source():
     runtime = RecordingRuntime()
     builtin = BuiltinToolSource(
         runtime, schemas=[{"type": "function", "function": {"name": "shell"}}]
@@ -81,13 +81,13 @@ def test_loop_dispatches_call_to_matching_source():
         ]
     )
     loop = AgentLoop(model=model, env=runtime, tool_sources=[builtin, mcp])
-    result = loop.run(task="x")
+    result = await loop.run(task="x")
     assert result.exit_status == "finished"
     assert mcp.calls == [("search", {"q": "x"})]
     assert runtime.calls == []  # builtin source was NOT invoked
 
 
-def test_loop_default_uses_builtin_source():
+async def test_loop_default_uses_builtin_source():
     runtime = RecordingRuntime()
     model = MockModel(
         script=[
@@ -96,7 +96,7 @@ def test_loop_default_uses_builtin_source():
         ]
     )
     loop = AgentLoop(model=model, env=runtime)
-    result = loop.run(task="x")
+    result = await loop.run(task="x")
     assert result.exit_status == "finished"
     assert runtime.calls == [{"name": "shell", "arguments": {"command": "ls"}}]
 

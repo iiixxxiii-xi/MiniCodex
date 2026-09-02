@@ -10,6 +10,7 @@ review themselves.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import subprocess
 from dataclasses import dataclass, field
@@ -67,7 +68,7 @@ class ChatRunner:
         self.model_name = model_name or getattr(model, "model", "") or type(model).__name__
         self.tool_sources = tool_sources
 
-    def run(self, instruction: str) -> ChatTurn:
+    async def run(self, instruction: str) -> ChatTurn:
         """Run one instruction and return its diff + summary.
 
         A fresh runtime + loop is built per turn (the loop owns the env
@@ -92,11 +93,11 @@ class ChatRunner:
                 model_name=self.model_name,
             )
             runtime.start()
-            output = loop.run(task=instruction)
+            output = await loop.run(task=instruction)
             tool_calls = [event.tool_name for event in sink.events if isinstance(event, ActionEvent)]
             return ChatTurn(
                 exit_status=output.exit_status,
-                diff=_git_diff(self.repo),
+                diff=await asyncio.to_thread(_git_diff, self.repo),
                 tool_calls=tool_calls,
                 summary=_summarize(output.exit_status, len(tool_calls)),
             )
@@ -107,7 +108,7 @@ class ChatRunner:
             return ChatTurn(exit_status="Error", error=str(exc), summary="agent errored")
 
 
-def run_chat_session(runner: ChatRunner, *, readline, write) -> int:
+async def run_chat_session(runner: ChatRunner, *, readline, write) -> int:
     """Drive the interactive REPL, returning a process exit code.
 
     ``readline()`` yields the next input line (raising ``EOFError`` at end of
@@ -123,7 +124,7 @@ def run_chat_session(runner: ChatRunner, *, readline, write) -> int:
         if not text or text.lower() in ("exit", "quit"):
             return 0
         try:
-            turn = runner.run(text)
+            turn = await runner.run(text)
         except KeyboardInterrupt:
             return 0
         write(_render_turn(turn))

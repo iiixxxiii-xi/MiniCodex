@@ -7,6 +7,7 @@ API key. Real models are selected with ``--model anthropic/<id>`` or
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import sys
@@ -96,7 +97,7 @@ def run_cmd(
         max_requeries=max_requeries,
         tool_sources=_build_tool_sources(mcp),
     )
-    result = runner.run(task_obj)
+    result = asyncio.run(runner.run(task_obj))
     verdict = "PASS" if result.passed else "FAIL"
     m = result.metrics
     typer.echo(
@@ -139,7 +140,7 @@ def chat_cmd(
         sys.stdout.flush()
         return input()
 
-    code = run_chat_session(runner, readline=_readline, write=typer.echo)
+    code = asyncio.run(run_chat_session(runner, readline=_readline, write=typer.echo))
     raise typer.Exit(code=code)
 
 
@@ -150,6 +151,7 @@ def eval_cmd(
     policies: str = typer.Option("minimal,full", "--policies", help="Comma-separated ablation presets."),
     output_dir: str = typer.Option("results", "--output-dir", help="Where to write results + report."),
     mock: bool = typer.Option(False, "--mock", help="Force MockModel (no API key)."),
+    concurrency: int = typer.Option(4, "--concurrency", help="Max tasks to run concurrently."),
 ) -> None:
     """Run a task set under every policy preset (ablation) and write a report."""
     try:
@@ -169,7 +171,15 @@ def eval_cmd(
     presets = [DEFAULT_PRESETS[name] for name in preset_names]
 
     model_obj = resolve_model(model, mock)
-    results = run_ablation(task_list, model_obj, presets=presets, output_dir=output_dir)
+    results = asyncio.run(
+        run_ablation(
+            task_list,
+            model_obj,
+            presets=presets,
+            output_dir=output_dir,
+            concurrency=concurrency,
+        )
+    )
     dump_ablation_results(results, output_dir)
     write_report(results, output_dir)
     for result in results:

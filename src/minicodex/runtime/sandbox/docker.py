@@ -8,6 +8,7 @@ Each command carries a timeout; on timeout the running command is interrupted.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import shlex
@@ -106,7 +107,7 @@ class DockerRuntime:
         self.container_id = result.stdout.strip()
         logger.info("started container %s (%s)", container_name, self.container_id)
 
-    def execute(self, command: str, *, timeout: int | None = None) -> dict:
+    async def execute(self, command: str, *, timeout: int | None = None) -> dict:
         if self.container_id is None:
             return failure("Container is not running.", retryable=False)
         effective_timeout = timeout if timeout is not None else self.config.timeout
@@ -120,8 +121,10 @@ class DockerRuntime:
             "-lc",
             command,
         ]
-        try:
-            result = subprocess.run(
+
+        async def _run() -> subprocess.CompletedProcess:
+            return await asyncio.to_thread(
+                subprocess.run,
                 argv,
                 capture_output=True,
                 text=True,
@@ -129,6 +132,9 @@ class DockerRuntime:
                 errors="replace",
                 timeout=effective_timeout,
             )
+
+        try:
+            result = await _run()
         except subprocess.TimeoutExpired:
             logger.warning("command timed out after %ss: %s", effective_timeout, command)
             return failure(f"Command timed out after {effective_timeout}s: {command}", retryable=True)

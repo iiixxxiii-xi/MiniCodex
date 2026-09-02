@@ -26,17 +26,17 @@ class MockModel:
         self.total_cost_usd = 0.0
         self._cancelled = False
 
-    def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse:
+    async def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse:
         response = self._next()
         self.total_input_tokens += response.usage.input_tokens
         self.total_output_tokens += response.usage.output_tokens
         self.total_cost_usd += response.usage.cost_usd
         return response
 
-    def stream(self, messages: list[dict], tools: list[dict]):
-        yield self.query(messages, tools)
+    async def stream(self, messages: list[dict], tools: list[dict]):
+        yield await self.query(messages, tools)
 
-    def cancel(self) -> None:
+    async def cancel(self) -> None:
         self._cancelled = True
 
     def _default_usage(self) -> Usage:

@@ -24,38 +24,38 @@ def test_is_retryable_timeout_by_name():
     assert is_retryable(_TimeoutError()) is True
 
 
-def test_with_retry_retries_then_succeeds():
+async def test_with_retry_retries_then_succeeds():
     calls: list[int] = []
 
-    def fn():
+    async def fn():
         calls.append(1)
         if len(calls) < 3:
             raise _StatusError(500)
         return "ok"
 
-    assert with_retry(fn, max_attempts=5, base_delay=0.0) == "ok"
+    assert await with_retry(fn, max_attempts=5, base_delay=0.0) == "ok"
     assert len(calls) == 3
 
 
-def test_with_retry_non_retryable_fails_immediately():
+async def test_with_retry_non_retryable_fails_immediately():
     calls: list[int] = []
 
-    def fn():
+    async def fn():
         calls.append(1)
         raise _StatusError(400)
 
     with pytest.raises(_StatusError):
-        with_retry(fn, max_attempts=5, base_delay=0.0)
+        await with_retry(fn, max_attempts=5, base_delay=0.0)
     assert len(calls) == 1
 
 
-def test_with_retry_exhausts_and_reraises():
+async def test_with_retry_exhausts_and_reraises():
     calls: list[int] = []
 
-    def fn():
+    async def fn():
         calls.append(1)
         raise _StatusError(500)
 
     with pytest.raises(_StatusError):
-        with_retry(fn, max_attempts=3, base_delay=0.0)
+        await with_retry(fn, max_attempts=3, base_delay=0.0)
     assert len(calls) == 3

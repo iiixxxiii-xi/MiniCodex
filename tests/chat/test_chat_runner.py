@@ -29,17 +29,17 @@ def _finishing_model():
 
 
 class _FailingModel:
-    def query(self, messages, tools):
+    async def query(self, messages, tools):
         raise ModelError("boom")
 
-    def stream(self, messages, tools):
+    async def stream(self, messages, tools):
         raise ModelError("boom")
 
-    def cancel(self):
+    async def cancel(self):
         pass
 
 
-def test_chat_runner_edits_file_and_returns_diff(tmp_path):
+async def test_chat_runner_edits_file_and_returns_diff(tmp_path):
     repo = _make_git_repo(tmp_path)
     model = MockModel(script=[
         {
@@ -58,7 +58,7 @@ def test_chat_runner_edits_file_and_returns_diff(tmp_path):
     ])
     runner = ChatRunner(model, repo)
 
-    turn = runner.run("make mean return 0 for empty input")
+    turn = await runner.run("make mean return 0 for empty input")
 
     assert isinstance(turn, ChatTurn)
     assert turn.exit_status == "finished"
@@ -67,18 +67,18 @@ def test_chat_runner_edits_file_and_returns_diff(tmp_path):
     assert turn.error == ""
 
 
-def test_chat_runner_no_diff_when_no_changes(tmp_path):
+async def test_chat_runner_no_diff_when_no_changes(tmp_path):
     _make_git_repo(tmp_path)
     runner = ChatRunner(_finishing_model(), tmp_path)
 
-    turn = runner.run("do nothing")
+    turn = await runner.run("do nothing")
 
     assert turn.exit_status == "finished"
     assert turn.diff == ""
     assert turn.tool_calls == []
 
 
-def test_chat_runner_captures_tool_call_order(tmp_path):
+async def test_chat_runner_captures_tool_call_order(tmp_path):
     model = MockModel(script=[
         {"tool_calls": [{"id": "1", "name": "shell", "arguments": {"command": "echo hi"}}]},
         {"tool_calls": [{"id": "2", "name": "grep", "arguments": {"pattern": "x", "path": "."}}]},
@@ -86,36 +86,36 @@ def test_chat_runner_captures_tool_call_order(tmp_path):
     ])
     runner = ChatRunner(model, tmp_path)
 
-    turn = runner.run("inspect")
+    turn = await runner.run("inspect")
 
     assert turn.tool_calls == ["shell", "grep"]
 
 
-def test_chat_runner_hits_step_limit(tmp_path):
+async def test_chat_runner_hits_step_limit(tmp_path):
     model = MockModel(
         script=[{"tool_calls": [{"id": "1", "name": "shell", "arguments": {"command": "ls"}}]}]
     )
     runner = ChatRunner(model, tmp_path, step_limit=2)
 
-    turn = runner.run("loop forever")
+    turn = await runner.run("loop forever")
 
     assert turn.exit_status == "LimitsExceeded"
 
 
-def test_chat_runner_degrades_on_model_error(tmp_path):
+async def test_chat_runner_degrades_on_model_error(tmp_path):
     runner = ChatRunner(_FailingModel(), tmp_path, max_requeries=1)
 
-    turn = runner.run("anything")
+    turn = await runner.run("anything")
 
     assert turn.exit_status == "ModelError"
     assert turn.diff == ""
 
 
-def test_chat_runner_summary_mentions_exit_status(tmp_path):
+async def test_chat_runner_summary_mentions_exit_status(tmp_path):
     _make_git_repo(tmp_path)
     runner = ChatRunner(_finishing_model(), tmp_path)
 
-    turn = runner.run("hello")
+    turn = await runner.run("hello")
 
     assert "finished" in turn.summary
 
@@ -125,39 +125,39 @@ def test_chat_runner_rejects_missing_repo(tmp_path):
         ChatRunner(_finishing_model(), tmp_path / "does-not-exist")
 
 
-def test_session_exits_on_quit(tmp_path):
+async def test_session_exits_on_quit(tmp_path):
     runner = ChatRunner(_finishing_model(), tmp_path)
     lines = iter(["quit"])
     output = []
-    rc = run_chat_session(runner, readline=lambda: next(lines), write=output.append)
+    rc = await run_chat_session(runner, readline=lambda: next(lines), write=output.append)
     assert rc == 0
     assert output == []
 
 
-def test_session_exits_on_empty_input(tmp_path):
+async def test_session_exits_on_empty_input(tmp_path):
     runner = ChatRunner(_finishing_model(), tmp_path)
     lines = iter(["   "])
-    rc = run_chat_session(runner, readline=lambda: next(lines), write=lambda s: None)
+    rc = await run_chat_session(runner, readline=lambda: next(lines), write=lambda s: None)
     assert rc == 0
 
 
-def test_session_exits_on_ctrl_c(tmp_path):
+async def test_session_exits_on_ctrl_c(tmp_path):
     runner = ChatRunner(_finishing_model(), tmp_path)
 
     def readline():
         raise KeyboardInterrupt
 
-    rc = run_chat_session(runner, readline=readline, write=lambda s: None)
+    rc = await run_chat_session(runner, readline=readline, write=lambda s: None)
     assert rc == 0
 
 
-def test_session_runs_instruction_and_renders(tmp_path):
+async def test_session_runs_instruction_and_renders(tmp_path):
     _make_git_repo(tmp_path)
     runner = ChatRunner(_finishing_model(), tmp_path)
     lines = iter(["say hello", "exit"])
     output = []
 
-    rc = run_chat_session(runner, readline=lambda: next(lines), write=output.append)
+    rc = await run_chat_session(runner, readline=lambda: next(lines), write=output.append)
 
     assert rc == 0
     assert any("finished" in line for line in output)

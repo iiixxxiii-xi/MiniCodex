@@ -8,6 +8,7 @@ metric.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -103,20 +104,24 @@ DEFAULT_PRESETS: dict[str, AblationPreset] = {
 }
 
 
-def run_ablation(
+async def run_ablation(
     tasks: list[Task],
     model,
     *,
     presets: list[AblationPreset] | None = None,
     output_dir: str | Path | None = None,
+    concurrency: int = 4,
 ) -> list[AblationResult]:
     """Run ``tasks`` under every preset and return one :class:`AblationResult`
     per preset (each carrying per-task results + aggregated metrics).
 
-    The same ``model`` is reused across presets; per-run metrics are computed
-    from each run's own event log, so reuse does not leak state.
+    Tasks within a preset run concurrently, bounded by a semaphore of size
+    ``concurrency`` so a large batch never saturates the model/runtime. The same
+    ``model`` is reused across presets; per-run metrics are computed from each
+    run's own event log, so reuse does not leak state.
     """
     presets = presets if presets is not None else list(DEFAULT_PRESETS.values())
+    semaphore = asyncio.Semaphore(max(1, concurrency))
     results: list[AblationResult] = []
     for preset in presets:
         preset_dir = Path(output_dir) / preset.name if output_dir is not None else None
@@ -129,7 +134,9 @@ def run_ablation(
             tool_policy=preset.tool_policy,
             retry_policy=preset.retry_policy,
         )
-        run_results = [runner.run(task) for task in tasks]
+        run_results = await asyncio.gather(
+            *(_run_one(runner, task, semaphore) for task in tasks)
+        )
         results.append(
             AblationResult(
                 preset=preset.name,
@@ -138,3 +145,9 @@ def run_ablation(
             )
         )
     return results
+
+
+async def _run_one(runner: Runner, task: Task, semaphore: asyncio.Semaphore) -> RunResult:
+    """Run a single task, gated by the shared concurrency semaphore."""
+    async with semaphore:
+        return await runner.run(task)

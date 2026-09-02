@@ -40,5 +40,5 @@ class BuiltinToolSource:
             return schemas_fn()
         return []
 
-    def call(self, name: str, arguments: dict) -> dict:
-        return self.runtime.execute({"name": name, "arguments": arguments})
+    async def call(self, name: str, arguments: dict) -> dict:
+        return await self.runtime.execute({"name": name, "arguments": arguments})

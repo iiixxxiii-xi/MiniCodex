@@ -76,12 +76,12 @@ class AgentLoop:
         if self.event_sink is not None:
             self.event_sink.append(event)
 
-    def run(self, task: str = "") -> StepOutput:
+    async def run(self, task: str = "") -> StepOutput:
         self.messages = [make_message("system", "You are a coding agent."), make_message("user", task)]
         try:
             while True:
                 try:
-                    output = self.step()
+                    output = await self.step()
                     self.requery.reset()
                     if output.done:
                         logger.info("agent finished normally after %d steps", self.budgets.steps)
@@ -135,13 +135,13 @@ class AgentLoop:
         finally:
             self._cleanup()
 
-    def step(self) -> StepOutput:
+    async def step(self) -> StepOutput:
         self.budgets.check()
         start = time.monotonic()
         if self.stream:
-            response = self._collect_stream(self.model.stream(self.messages, self._schemas))
+            response = await self._collect_stream(self.model.stream(self.messages, self._schemas))
         else:
-            response = self.model.query(self.messages, self._schemas)
+            response = await self.model.query(self.messages, self._schemas)
         self.budgets.register_step()
         self.budgets.add_tokens(response.usage.input_tokens, response.usage.output_tokens)
         self.budgets.add_cost(response.usage.cost_usd)
@@ -176,7 +176,7 @@ class AgentLoop:
             )
             self._emit(action_event)
             source = self._source_for(tool_call.name)
-            observation = source.call(action["name"], action["arguments"])
+            observation = await source.call(action["name"], action["arguments"])
             self._emit(
                 ObservationEvent(
                     source=EventSource.RUNTIME,
@@ -200,7 +200,7 @@ class AgentLoop:
         )
         return StepOutput(done=not response.tool_calls)
 
-    def _collect_stream(self, stream) -> ModelResponse:
+    async def _collect_stream(self, stream) -> ModelResponse:
         """Merge incremental stream chunks into one final :class:`ModelResponse`.
 
         ``thought`` accumulates across chunks (streaming text deltas), while
@@ -211,7 +211,7 @@ class AgentLoop:
         tool_calls = []
         usage = Usage()
         stop_reason = ""
-        for chunk in stream:
+        async for chunk in stream:
             if chunk.thought:
                 thought_parts.append(chunk.thought)
             if chunk.tool_calls:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Iterator, Protocol
+from collections.abc import AsyncIterator
+from typing import Protocol
 
 from pydantic import BaseModel, Field
 
@@ -25,9 +26,9 @@ class ModelResponse(BaseModel):
 
 
 class Model(Protocol):
-    def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse: ...
-    def stream(self, messages: list[dict], tools: list[dict]) -> Iterator[ModelResponse]: ...
-    def cancel(self) -> None: ...
+    async def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse: ...
+    def stream(self, messages: list[dict], tools: list[dict]) -> AsyncIterator[ModelResponse]: ...
+    async def cancel(self) -> None: ...
 
 
 class ModelError(Exception):

@@ -12,7 +12,7 @@ class FakeRuntime:
     def __init__(self):
         self.calls = []
 
-    def execute(self, action):
+    async def execute(self, action):
         self.calls.append(action)
         return {"output": f"ran {action['name']}", "returncode": 0, "error": ""}
 
@@ -28,10 +28,10 @@ def test_builtin_source_exposes_registry_schemas():
     assert [s["function"]["name"] for s in schemas] == ["alpha"]
 
 
-def test_builtin_source_calls_runtime_execute():
+async def test_builtin_source_calls_runtime_execute():
     runtime = FakeRuntime()
     source = BuiltinToolSource(runtime, registry=ToolRegistry())
-    result = source.call("alpha", {"x": 1})
+    result = await source.call("alpha", {"x": 1})
     assert result == {"output": "ran alpha", "returncode": 0, "error": ""}
     assert runtime.calls == [{"name": "alpha", "arguments": {"x": 1}}]
 

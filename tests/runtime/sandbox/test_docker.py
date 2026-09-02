@@ -31,10 +31,10 @@ requires_docker = pytest.mark.skipif(not _docker_available(), reason="Docker dae
 pytestmark = [pytest.mark.docker, requires_docker]
 
 
-def test_docker_execute_echo_and_cleanup():
+async def test_docker_execute_echo_and_cleanup():
     runtime = DockerRuntime(image=IMAGE)
     try:
-        result = runtime.execute("echo hi")
+        result = await runtime.execute("echo hi")
         assert result["returncode"] == 0
         assert "hi" in result["output"]
         assert result["error"] == ""
@@ -42,20 +42,20 @@ def test_docker_execute_echo_and_cleanup():
         runtime.cleanup()
 
 
-def test_docker_execute_nonzero_exit():
+async def test_docker_execute_nonzero_exit():
     runtime = DockerRuntime(image=IMAGE)
     try:
-        result = runtime.execute("echo 'oops' >&2; exit 3")
+        result = await runtime.execute("echo 'oops' >&2; exit 3")
         assert result["returncode"] == 3
         assert result["error"]
     finally:
         runtime.cleanup()
 
 
-def test_docker_execute_timeout_is_retryable():
+async def test_docker_execute_timeout_is_retryable():
     runtime = DockerRuntime(image=IMAGE)
     try:
-        result = runtime.execute("sleep 5", timeout=1)
+        result = await runtime.execute("sleep 5", timeout=1)
         assert result["error"]
         assert result["retryable"] is True
     finally:

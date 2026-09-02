@@ -6,6 +6,7 @@ Intended for tests and fast development only. Shell commands execute via
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Callable
 from pathlib import Path
@@ -43,7 +44,7 @@ class LocalRuntime:
     def schemas(self) -> list[dict]:
         return self._registry.schemas()
 
-    def execute(self, action: dict) -> dict:
+    async def execute(self, action: dict) -> dict:
         name = action.get("name")
         arguments = action.get("arguments", {})
         fn = self._tools.get(name)
@@ -51,7 +52,10 @@ class LocalRuntime:
             logger.warning("unknown tool '%s'", name)
             return failure(f"Unknown tool '{name}'", retryable=False)
         try:
-            return fn(arguments, cwd=self.cwd)
+            # Tools run subprocess/file IO synchronously; offload to a worker
+            # thread so a blocking tool never stalls the event loop (and thus
+            # other concurrently-running eval tasks).
+            return await asyncio.to_thread(fn, arguments, cwd=self.cwd)
         except ToolError as exc:
             return failure(exc.message, retryable=exc.retryable)
         except Exception as exc:  # pragma: no cover - defensive last resort

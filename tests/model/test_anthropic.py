@@ -13,7 +13,7 @@ class _StatusError(Exception):
 class _FailingClient:
     class messages:
         @staticmethod
-        def create(**kwargs):
+        async def create(**kwargs):
             raise _StatusError(400)
 
 
@@ -85,14 +85,14 @@ def test_anthropic_model_instantiates_without_client():
     assert m.model == "claude-sonnet-4-5"
 
 
-def test_anthropic_model_wraps_client_error():
+async def test_anthropic_model_wraps_client_error():
     m = AnthropicModel(model="claude-sonnet-4-5", client=_FailingClient())
     with pytest.raises(ModelError):
-        m.query([], [])
+        await m.query([], [])
 
 
-def test_anthropic_model_cancelled_raises():
+async def test_anthropic_model_cancelled_raises():
     m = AnthropicModel(model="claude-sonnet-4-5")
-    m.cancel()
+    await m.cancel()
     with pytest.raises(ModelError):
-        m.query([], [])
+        await m.query([], [])

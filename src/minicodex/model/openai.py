@@ -129,27 +129,27 @@ class OpenAIModel:
         if self._client is None:
             import openai
 
-            self._client = openai.OpenAI(base_url=self.base_url, api_key=self.api_key)
+            self._client = openai.AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
         return self._client
 
     def _ensure_not_cancelled(self) -> None:
         if self._cancelled:
             raise ModelError(f"OpenAI model '{self.model}' request was cancelled.")
 
-    def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse:
+    async def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse:
         self._ensure_not_cancelled()
         client = self._get_client()
         payload = to_openai_messages(messages)
 
-        def call():
-            return client.chat.completions.create(
+        async def call():
+            return await client.chat.completions.create(
                 model=self.model,
                 messages=payload,
                 tools=tools,
             )
 
         try:
-            response = with_retry(call, max_attempts=self.max_attempts, log=logger)
+            response = await with_retry(call, max_attempts=self.max_attempts, log=logger)
         except Exception as exc:
             raise ModelError(f"OpenAI model '{self.model}' call failed: {exc}") from exc
         choice = response.choices[0]
@@ -160,18 +160,18 @@ class OpenAIModel:
             model=self.model,
         )
 
-    def stream(self, messages: list[dict], tools: list[dict]):
+    async def stream(self, messages: list[dict], tools: list[dict]):
         self._ensure_not_cancelled()
         client = self._get_client()
         payload = to_openai_messages(messages)
         try:
-            stream = client.chat.completions.create(
+            stream = await client.chat.completions.create(
                 model=self.model,
                 messages=payload,
                 tools=tools,
                 stream=True,
             )
-            for chunk in stream:
+            async for chunk in stream:
                 if not chunk.choices:
                     continue
                 delta = chunk.choices[0].delta
@@ -180,6 +180,6 @@ class OpenAIModel:
         except Exception as exc:
             raise ModelError(f"OpenAI model '{self.model}' stream failed: {exc}") from exc
 
-    def cancel(self) -> None:
+    async def cancel(self) -> None:
         self._cancelled = True
         logger.info("OpenAI model '%s' cancellation requested.", self.model)

@@ -54,10 +54,10 @@ def test_default_presets_expose_independent_dimensions():
     assert "no_retry" in DEFAULT_PRESETS
 
 
-def test_run_ablation_produces_one_result_per_preset(tmp_path):
+async def test_run_ablation_produces_one_result_per_preset(tmp_path):
     tasks = [_make_task("t1", tmp_path), _make_task("t2", tmp_path)]
     model = MockModel(script=[{"tool_calls": []}])
-    results = run_ablation(tasks, model, presets=list(DEFAULT_PRESETS.values()))
+    results = await run_ablation(tasks, model, presets=list(DEFAULT_PRESETS.values()))
 
     assert len(results) == len(DEFAULT_PRESETS)
     assert {r.preset for r in results} == set(DEFAULT_PRESETS)
@@ -67,21 +67,21 @@ def test_run_ablation_produces_one_result_per_preset(tmp_path):
         assert r.metrics.n_tasks == 2
 
 
-def test_run_ablation_custom_presets(tmp_path):
+async def test_run_ablation_custom_presets(tmp_path):
     tasks = [_make_task("t1", tmp_path)]
     presets = [
         AblationPreset(name="a", step_limit=1, max_requeries=0),
         AblationPreset(name="b", step_limit=0, max_requeries=3),
     ]
     model = MockModel(script=[{"tool_calls": []}])
-    results = run_ablation(tasks, model, presets=presets)
+    results = await run_ablation(tasks, model, presets=presets)
     assert [r.preset for r in results] == ["a", "b"]
 
 
-def test_run_ablation_serializes_to_json(tmp_path):
+async def test_run_ablation_serializes_to_json(tmp_path):
     tasks = [_make_task("t1", tmp_path)]
     model = MockModel(script=[{"tool_calls": []}])
-    results = run_ablation(tasks, model, presets=list(DEFAULT_PRESETS.values()))
+    results = await run_ablation(tasks, model, presets=list(DEFAULT_PRESETS.values()))
     for r in results:
         data = r.model_dump(mode="json")
         assert data["preset"] == r.preset

@@ -129,19 +129,19 @@ class AnthropicModel:
         if self._client is None:
             import anthropic
 
-            self._client = anthropic.Anthropic()
+            self._client = anthropic.AsyncAnthropic()
         return self._client
 
     def _ensure_not_cancelled(self) -> None:
         if self._cancelled:
             raise ModelError(f"Anthropic model '{self.model}' request was cancelled.")
 
-    def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse:
+    async def query(self, messages: list[dict], tools: list[dict]) -> ModelResponse:
         self._ensure_not_cancelled()
         client = self._get_client()
         system, payload = to_anthropic_messages(messages)
 
-        def call():
+        async def call():
             kwargs = {
                 "model": self.model,
                 "max_tokens": self.max_tokens,
@@ -150,15 +150,15 @@ class AnthropicModel:
             }
             if system:
                 kwargs["system"] = system
-            return client.messages.create(**kwargs)
+            return await client.messages.create(**kwargs)
 
         try:
-            message = with_retry(call, max_attempts=self.max_attempts, log=logger)
+            message = await with_retry(call, max_attempts=self.max_attempts, log=logger)
         except Exception as exc:
             raise ModelError(f"Anthropic model '{self.model}' call failed: {exc}") from exc
         return anthropic_message_to_response(message, model=self.model)
 
-    def stream(self, messages: list[dict], tools: list[dict]):
+    async def stream(self, messages: list[dict], tools: list[dict]):
         self._ensure_not_cancelled()
         client = self._get_client()
         system, payload = to_anthropic_messages(messages)
@@ -171,11 +171,12 @@ class AnthropicModel:
             }
             if system:
                 kwargs["system"] = system
-            with client.messages.stream(**kwargs) as stream:
-                yield anthropic_message_to_response(stream.get_final_message(), model=self.model)
+            async with client.messages.stream(**kwargs) as stream:
+                message = await stream.get_final_message()
+                yield anthropic_message_to_response(message, model=self.model)
         except Exception as exc:
             raise ModelError(f"Anthropic model '{self.model}' stream failed: {exc}") from exc
 
-    def cancel(self) -> None:
+    async def cancel(self) -> None:
         self._cancelled = True
         logger.info("Anthropic model '%s' cancellation requested.", self.model)

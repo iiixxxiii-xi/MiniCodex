@@ -93,11 +93,14 @@ class McpToolSource:
                 self._tool_names = {tool.get("name", "") for tool in tools}
         return list(self._schemas)
 
-    def call(self, name: str, arguments: dict) -> dict:
+    async def call(self, name: str, arguments: dict) -> dict:
         if self._connect_error is not None:
             return source_failure(f"MCP server unavailable: {self._connect_error}", retryable=True)
         try:
-            result = self.client.call_tool(name, arguments)
+            # The underlying client facade is synchronous (it bridges the async
+            # ``mcp`` SDK over a background loop); offload to a thread so the
+            # agent's event loop is not blocked while the server responds.
+            result = await asyncio.to_thread(self.client.call_tool, name, arguments)
         except McpConnectionError as exc:
             return source_failure(f"MCP connection lost: {exc}", retryable=True)
         except McpCallError as exc:

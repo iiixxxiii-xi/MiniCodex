@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
-import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import TypeVar
 
 logger = logging.getLogger(__name__)
@@ -28,8 +28,8 @@ def is_retryable(exc: Exception) -> bool:
     return any(token in name for token in _RETRYABLE_NAME_TOKENS)
 
 
-def with_retry(
-    fn: Callable[[], T],
+async def with_retry(
+    fn: Callable[[], Awaitable[T]],
     *,
     retry_on: Callable[[Exception], bool] = is_retryable,
     max_attempts: int = 5,
@@ -37,7 +37,7 @@ def with_retry(
     max_delay: float = 60.0,
     log: logging.Logger = logger,
 ) -> T:
-    """Call ``fn``, retrying retryable failures with exponential backoff.
+    """Call the async ``fn``, retrying retryable failures with exponential backoff.
 
     Non-retryable failures propagate immediately. Retryable failures are retried
     up to ``max_attempts`` total attempts; on exhaustion the last exception is
@@ -47,7 +47,7 @@ def with_retry(
     while True:
         attempt += 1
         try:
-            return fn()
+            return await fn()
         except Exception as exc:
             retryable = retry_on(exc)
             if not retryable or attempt >= max_attempts:
@@ -61,4 +61,4 @@ def with_retry(
                 exc,
                 delay,
             )
-            time.sleep(delay)
+            await asyncio.sleep(delay)

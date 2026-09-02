@@ -8,6 +8,7 @@ event log (the single source of truth) is persisted alongside a JSON result.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import shutil
@@ -85,7 +86,7 @@ class Runner:
         self.tool_sources = tool_sources
         self._ephemeral_dirs: list[Path] = []
 
-    def run(self, task: Task) -> RunResult:
+    async def run(self, task: Task) -> RunResult:
         """Run one task end-to-end and return its result.
 
         The model drives the loop against the task workspace; the hidden test
@@ -119,10 +120,10 @@ class Runner:
         # The loop owns the env lifecycle: AgentLoop.run() stops the env in its
         # own ``finally``, so the runner only starts it (avoiding a double stop).
         runtime.start()
-        output = loop.run(task=task.instruction)
+        output = await loop.run(task=task.instruction)
 
-        passed, error, _ = self._run_hidden_test(task, repo_path)
-        submission = self._collect_patch(repo_path)
+        passed, error, _ = await asyncio.to_thread(self._run_hidden_test, task, repo_path)
+        submission = await asyncio.to_thread(self._collect_patch, repo_path)
         sink.events.append(
             SubmissionEvent(source=EventSource.CONTROLLER, content=submission, passed=passed)
         )
