@@ -56,7 +56,18 @@ def build_model(model_id: str):
     if not api_key:
         raise SystemExit("DEEPSEEK_API_KEY is not set in .env; cannot run a real model.")
     base_url = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-    return OpenAIModel(model=model_id, base_url=base_url, api_key=api_key)
+    # DeepSeek V4 models are reasoning models: keep thinking ON (coding needs
+    # it) and raise the token budget so the chain-of-thought isn't truncated
+    # before the first tool call. Do NOT force tool_choice — the loop terminates
+    # on "no tool calls".
+    is_v4 = "v4" in model_id
+    return OpenAIModel(
+        model=model_id,
+        base_url=base_url,
+        api_key=api_key,
+        max_tokens=8192 if is_v4 else 4096,
+        extra_body={"thinking": {"type": "enabled"}} if is_v4 else None,
+    )
 
 
 async def run_one(
