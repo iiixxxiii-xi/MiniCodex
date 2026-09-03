@@ -1,0 +1,22 @@
+{
+  "id": "ds-12",
+  "repo": "ds",
+  "instruction": "The public `ds` package API for linked lists is broken. `ds.from_seq` builds lists in the wrong order and `ds.to_list` is missing from the package, so round-tripping a sequence through `ds.to_list(ds.from_seq(...))` fails.",
+  "gold_patch": "diff --git a/ds/__init__.py b/ds/__init__.py\n--- a/ds/__init__.py\n+++ b/ds/__init__.py\n@@ -10,7 +10,7 @@\n \"\"\"\n \n from ds.counter import Counter\n-from ds.ll import Node, append, from_seq, length, reverse\n+from ds.ll import Node, append, from_seq, length, reverse, to_list\n from ds.lru import LRUCache\n from ds.ring import RingBuffer\n from ds.stack import Stack\ndiff --git a/ds/ll.py b/ds/ll.py\n--- a/ds/ll.py\n+++ b/ds/ll.py\n@@ -15,7 +15,7 @@\n def from_seq(seq):\n     \"\"\"Build a linked list from an iterable, returning the head node.\"\"\"\n     head = None\n-    for item in seq:\n+    for item in reversed(seq):\n         head = Node(item, head)\n     return head\n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-12",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "api",
+    "estimated_lines": 3
+  },
+  "fail_to_pass": [
+    "tests/test_ll.py::test_api_from_seq_to_list_roundtrip"
+  ],
+  "pass_to_pass": [
+    "tests/test_ll.py::test_length_three",
+    "tests/test_ll.py::test_to_list_single",
+    "tests/test_ll.py::test_length_empty"
+  ]
+}

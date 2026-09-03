@@ -1,0 +1,23 @@
+{
+  "id": "fileops-11",
+  "repo": "fileops",
+  "instruction": "Fix `safe_write` in `fileops/write.py` and `write_dicts` in `fileops/csvio.py` so they create missing parent directories before opening the file. Writing to a path whose parent directory does not exist (e.g. `a/b/out.txt`) currently raises `FileNotFoundError`.",
+  "gold_patch": "diff --git a/fileops/csvio.py b/fileops/csvio.py\n--- a/fileops/csvio.py\n+++ b/fileops/csvio.py\n@@ -20,6 +20,7 @@\n     \"\"\"\n     if fieldnames is None:\n         fieldnames = list(rows[0].keys()) if rows else []\n+    ensure_parent(path)\n     with open_text(path, \"w\", newline=\"\") as handle:\n         writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator=\"\\n\")\n         writer.writeheader()\ndiff --git a/fileops/write.py b/fileops/write.py\n--- a/fileops/write.py\n+++ b/fileops/write.py\n@@ -5,6 +5,7 @@\n \n def safe_write(path, content):\n     \"\"\"Write ``content`` to ``path``, creating missing parent directories first.\"\"\"\n+    ensure_parent(path)\n     with open_text(path, \"w\", newline=\"\\n\") as handle:\n         handle.write(content)\n     return str(path)\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/fileops/fileops-11",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "writing",
+    "estimated_lines": 2
+  },
+  "fail_to_pass": [
+    "tests/test_write.py::test_safe_write_creates_parent_dirs",
+    "tests/test_data.py::test_write_dicts_creates_parent_dirs"
+  ],
+  "pass_to_pass": [
+    "tests/test_write.py::test_safe_write_basic",
+    "tests/test_write.py::test_append_line_adds_newline",
+    "tests/test_data.py::test_write_dicts_roundtrip"
+  ]
+}

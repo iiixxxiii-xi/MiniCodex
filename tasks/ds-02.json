@@ -1,23 +1,24 @@
 {
   "id": "ds-02",
   "repo": "ds",
-  "instruction": "Fix `linked_list_append` so it walks only as far as the last node (the current loop walks past the tail and crashes).",
-  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -29,7 +29,7 @@\n     if head is None:\n         return new\n     cur = head\n-    while cur is not None:\n+    while cur.next is not None:\n         cur = cur.next\n     cur.next = new\n     return head\n",
+  "instruction": "`ds/ll.py::to_list` drops the last node when converting a linked list back to a Python list. A single-node list comes back as `[]` and a three-node list as a two-element list, because the loop stops before visiting the final node; the empty list also raises instead of returning `[]`.",
+  "gold_patch": "diff --git a/ds/ll.py b/ds/ll.py\n--- a/ds/ll.py\n+++ b/ds/ll.py\n@@ -57,7 +57,7 @@\n     \"\"\"Convert a linked list back into a Python list.\"\"\"\n     out = []\n     cur = head\n-    while cur.nxt is not None:\n+    while cur is not None:\n         out.append(cur.value)\n         cur = cur.nxt\n     return out\n",
   "test_command": "",
   "repo_path": "tasks/repos/ds/ds-02",
   "base_commit": "",
   "metadata": {
-    "difficulty": "medium",
-    "category": "data-structure",
+    "difficulty": "easy",
+    "category": "linked-list",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_ds.py::test_linked_list_append_build",
-    "tests/test_ds.py::test_linked_list_append_single"
+    "tests/test_ll.py::test_to_list_empty",
+    "tests/test_ll.py::test_to_list_single",
+    "tests/test_ll.py::test_from_seq_order"
   ],
   "pass_to_pass": [
-    "tests/test_ds.py::test_linked_list_len_basic",
-    "tests/test_ds.py::test_stack_peek_basic",
-    "tests/test_ds.py::test_linked_list_append_empty"
+    "tests/test_ll.py::test_length_empty",
+    "tests/test_ll.py::test_length_three",
+    "tests/test_ll.py::test_reverse_empty"
   ]
 }

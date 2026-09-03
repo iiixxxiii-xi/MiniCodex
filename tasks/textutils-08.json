@@ -1,23 +1,25 @@
 {
   "id": "textutils-08",
   "repo": "textutils",
-  "instruction": "Fix `common_prefix` so it returns the full common prefix without dropping the last matching character (off-by-one in the return slice).",
-  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -51,7 +51,7 @@\n     i = 0\n     while i < len(a) and i < len(b) and a[i] == b[i]:\n         i += 1\n-    return a[:i - 1]\n+    return a[:i]\n \n \n def wrap(text, width):\n",
+  "instruction": "The shared vowel helper in `textutils/_helpers.py` only recognizes lowercase vowels, so `count_vowels` undercounts uppercase vowels. `count_vowels('HELLO')` returns `0` instead of `2`.",
+  "gold_patch": "diff --git a/textutils/_helpers.py b/textutils/_helpers.py\n--- a/textutils/_helpers.py\n+++ b/textutils/_helpers.py\n@@ -1,6 +1,6 @@\n \"\"\"Shared private helpers for the textutils package.\"\"\"\n \n-_VOWELS = frozenset(\"aeiou\")\n+_VOWELS = frozenset(\"aeiouAEIOU\")\n \n \n def is_vowel(char: str) -> bool:\n",
   "test_command": "",
   "repo_path": "tasks/repos/textutils/textutils-08",
   "base_commit": "",
   "metadata": {
     "difficulty": "medium",
-    "category": "string",
+    "category": "integration",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_textutils.py::test_common_prefix_basic",
-    "tests/test_textutils.py::test_common_prefix_full"
+    "tests/test_words.py::test_count_vowels_uppercase",
+    "tests/test_words.py::test_count_vowels_aeiou",
+    "tests/test_api.py::test_api_count_vowels"
   ],
   "pass_to_pass": [
-    "tests/test_textutils.py::test_reverse_words_two",
-    "tests/test_textutils.py::test_wrap_basic",
-    "tests/test_textutils.py::test_count_vowels_lower"
+    "tests/test_words.py::test_count_vowels_basic",
+    "tests/test_words.py::test_count_vowels_mixed",
+    "tests/test_words.py::test_count_vowels_no_vowels",
+    "tests/test_words.py::test_count_vowels_accents_ascii_only"
   ]
 }

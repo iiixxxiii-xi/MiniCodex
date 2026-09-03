@@ -1,23 +1,22 @@
 {
   "id": "datastore-01",
   "repo": "datastore",
-  "instruction": "Fix `parse_json` so an empty string parses to an empty dict instead of raising a JSON decode error.",
-  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -5,6 +5,8 @@\n \n def parse_json(text):\n     \"\"\"Parse a JSON string into a Python object.\"\"\"\n+    if not text.strip():\n+        return {}\n     return json.loads(text)\n \n \n",
+  "instruction": "Fix `DocumentStore.get` in `datastore/store.py` so it returns `None` for a missing key instead of raising `KeyError`. It currently indexes `self._docs[key]` directly, which crashes callers that look up an absent key.",
+  "gold_patch": "diff --git a/datastore/store.py b/datastore/store.py\n--- a/datastore/store.py\n+++ b/datastore/store.py\n@@ -27,7 +27,7 @@\n \n     def get(self, key):\n         \"\"\"Return the document stored under ``key``, or ``None`` if absent.\"\"\"\n-        return self._docs[key]\n+        return self._docs.get(key)\n \n     def delete(self, key) -> bool:\n         \"\"\"Remove ``key``; return ``True`` if it was present, else ``False``.\"\"\"\n",
   "test_command": "",
   "repo_path": "tasks/repos/datastore/datastore-01",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "data",
-    "estimated_lines": 2
+    "category": "store",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_datastore.py::test_parse_json_empty",
-    "tests/test_datastore.py::test_parse_json_whitespace"
+    "tests/test_store.py::test_get_missing_returns_none"
   ],
   "pass_to_pass": [
-    "tests/test_datastore.py::test_parse_csv_strips",
-    "tests/test_datastore.py::test_filter_records_match",
-    "tests/test_datastore.py::test_to_csv_default"
+    "tests/test_store.py::test_put_get",
+    "tests/test_store.py::test_put_overwrites",
+    "tests/test_store.py::test_contains"
   ]
 }

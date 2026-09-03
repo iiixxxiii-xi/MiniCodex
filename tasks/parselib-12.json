@@ -1,0 +1,24 @@
+{
+  "id": "parselib-12",
+  "repo": "parselib",
+  "instruction": "Whitespace is no longer being stripped around keys, values, and section names. In `parselib/textutil.py` the `parse_kv` helper returns the raw key and value without `.strip()`, and in `parselib/ini.py` the section name is read without stripping its surrounding whitespace. Restore whitespace stripping in both places.",
+  "gold_patch": "diff --git a/parselib/ini.py b/parselib/ini.py\n--- a/parselib/ini.py\n+++ b/parselib/ini.py\n@@ -19,7 +19,7 @@\n         if not line or line.startswith((\"#\", \";\")):\n             continue\n         if line.startswith(\"[\") and line.endswith(\"]\"):\n-            section = line[1:-1]\n+            section = line[1:-1].strip()\n             result.setdefault(section, {})\n             continue\n         pair = parse_kv(line)\ndiff --git a/parselib/textutil.py b/parselib/textutil.py\n--- a/parselib/textutil.py\n+++ b/parselib/textutil.py\n@@ -37,4 +37,4 @@\n     if sep not in cleaned:\n         raise ValueError(f\"line has no '{sep}' separator: {line!r}\")\n     key, value = cleaned.split(sep, 1)\n-    return key, value\n+    return key.strip(), value.strip()\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/parselib/parselib-12",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "integration",
+    "estimated_lines": 2
+  },
+  "fail_to_pass": [
+    "tests/test_textutil.py::test_parse_kv_strips_whitespace",
+    "tests/test_config.py::test_ini_section_name_stripped"
+  ],
+  "pass_to_pass": [
+    "tests/test_textutil.py::test_parse_kv_no_spaces",
+    "tests/test_config.py::test_json_basic",
+    "tests/test_csvio.py::test_csv_basic",
+    "tests/test_textutil.py::test_split_words_basic"
+  ]
+}

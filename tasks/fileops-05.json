@@ -1,24 +1,23 @@
 {
   "id": "fileops-05",
   "repo": "fileops",
-  "instruction": "Fix `list_by_extension` so the extension match is case-insensitive (a .TXT file should match '.txt').",
-  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -40,7 +40,7 @@\n \n def list_by_extension(directory, extension):\n     \"\"\"Return filenames in ``directory`` ending with ``extension`` (sorted).\"\"\"\n-    return sorted(f for f in os.listdir(directory) if f.endswith(extension))\n+    return sorted(f for f in os.listdir(directory) if f.lower().endswith(extension.lower()))\n \n \n def safe_write(path, content):\n",
+  "instruction": "Fix `list_by_extension` in `fileops/scan.py` so the extension match is case-insensitive. Searching for `\"txt\"` currently misses files whose names are uppercase (e.g. `report.TXT`).",
+  "gold_patch": "diff --git a/fileops/scan.py b/fileops/scan.py\n--- a/fileops/scan.py\n+++ b/fileops/scan.py\n@@ -13,6 +13,6 @@\n     names = []\n     for name in os.listdir(directory):\n         full = os.path.join(directory, name)\n-        if os.path.isfile(full) and name.endswith(\".\" + ext):\n+        if os.path.isfile(full) and name.lower().endswith(\".\" + ext):\n             names.append(name)\n     return sorted(names)\n",
   "test_command": "",
   "repo_path": "tasks/repos/fileops/fileops-05",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "file-io",
+    "category": "scanning",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_fileops.py::test_list_by_extension_case",
-    "tests/test_fileops.py::test_list_by_extension_upper_only"
+    "tests/test_data.py::test_list_by_extension_case_insensitive"
   ],
   "pass_to_pass": [
-    "tests/test_fileops.py::test_read_lines_basic",
-    "tests/test_fileops.py::test_tail_basic",
-    "tests/test_fileops.py::test_safe_write_creates_parent",
-    "tests/test_fileops.py::test_list_by_extension_empty"
+    "tests/test_data.py::test_list_by_extension_basic",
+    "tests/test_data.py::test_list_by_extension_leading_dot",
+    "tests/test_data.py::test_list_by_extension_skips_directories",
+    "tests/test_data.py::test_list_by_extension_sorted"
   ]
 }

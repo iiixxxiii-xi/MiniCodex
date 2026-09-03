@@ -1,0 +1,24 @@
+{
+  "id": "textutils-11",
+  "repo": "textutils",
+  "instruction": "`wrap` in `textutils/wrapping.py` breaks lines one character too early: a word that exactly fills the line is pushed to the next line. `wrap('aaa bb', 6)` produces two lines (`aaa` and `bb`) instead of keeping `aaa bb` on one line.",
+  "gold_patch": "diff --git a/textutils/wrapping.py b/textutils/wrapping.py\n--- a/textutils/wrapping.py\n+++ b/textutils/wrapping.py\n@@ -15,7 +15,7 @@\n     lines = []\n     current = words[0]\n     for word in words[1:]:\n-        if len(current) + 1 + len(word) < width:\n+        if len(current) + 1 + len(word) <= width:\n             current += \" \" + word\n         else:\n             lines.append(current)\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/textutils/textutils-11",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "wrapping",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_wrapping.py::test_wrap_exact_fit",
+    "tests/test_wrapping.py::test_wrap_basic"
+  ],
+  "pass_to_pass": [
+    "tests/test_wrapping.py::test_wrap_no_wrap_needed",
+    "tests/test_wrapping.py::test_wrap_long_word_unbroken",
+    "tests/test_wrapping.py::test_wrap_empty",
+    "tests/test_wrapping.py::test_wrap_collapses_spaces"
+  ]
+}

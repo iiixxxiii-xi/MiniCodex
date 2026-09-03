@@ -1,24 +1,25 @@
 {
   "id": "parselib-01",
   "repo": "parselib",
-  "instruction": "Fix `parse_json` so blank input parses to an empty dict instead of raising a JSON decode error.",
-  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -7,6 +7,8 @@\n \n def parse_json(text):\n     \"\"\"Parse a JSON string, treating blank input as an empty dict.\"\"\"\n+    if not text.strip():\n+        return {}\n     return json.loads(text)\n \n \n",
+  "instruction": "Fix `split_words` in `parselib/textutil.py` so it splits on runs of any whitespace, not single spaces. The current code uses `str.split(\" \")`, so tabs and repeated/leading/trailing spaces produce empty tokens or fail to split at all.",
+  "gold_patch": "diff --git a/parselib/textutil.py b/parselib/textutil.py\n--- a/parselib/textutil.py\n+++ b/parselib/textutil.py\n@@ -20,7 +20,7 @@\n     ``\"a  b\"`` -> ``[\"a\", \"b\"]``; never emits empty tokens for leading,\n     trailing, or repeated whitespace.\n     \"\"\"\n-    return text.split(\" \")\n+    return text.split()\n \n \n def parse_kv(line: str, sep: str = \"=\") -> tuple[str, str] | None:\n",
   "test_command": "",
   "repo_path": "tasks/repos/parselib/parselib-01",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "parsing",
-    "estimated_lines": 2
+    "category": "text",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_parselib.py::test_parse_json_blank",
-    "tests/test_parselib.py::test_parse_json_empty"
+    "tests/test_textutil.py::test_split_words_multiple_spaces",
+    "tests/test_textutil.py::test_split_words_tabs",
+    "tests/test_textutil.py::test_split_words_leading_trailing",
+    "tests/test_textutil.py::test_split_words_blank"
   ],
   "pass_to_pass": [
-    "tests/test_parselib.py::test_parse_csv_basic",
-    "tests/test_parselib.py::test_parse_kv_basic",
-    "tests/test_parselib.py::test_get_field_present",
-    "tests/test_parselib.py::test_parse_json_object"
+    "tests/test_textutil.py::test_split_words_basic",
+    "tests/test_textutil.py::test_strip_comments_hash",
+    "tests/test_textutil.py::test_parse_kv_basic"
   ]
 }

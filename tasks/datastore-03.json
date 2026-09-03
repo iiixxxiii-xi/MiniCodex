@@ -1,23 +1,22 @@
 {
   "id": "datastore-03",
   "repo": "datastore",
-  "instruction": "Fix `filter_records` so it keeps records whose key equals the given value (the comparison operator is currently inverted).",
-  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -17,7 +17,7 @@\n \n def filter_records(records, key, value):\n     \"\"\"Return records whose ``key`` equals ``value``.\"\"\"\n-    return [r for r in records if r.get(key) != value]\n+    return [r for r in records if r.get(key) == value]\n \n \n def group_by(records, key):\n",
+  "instruction": "Fix `to_csv` in `datastore/csvio.py` so it emits the header row. It currently ignores the `header` argument entirely, so callers that pass a header get data-only output.",
+  "gold_patch": "diff --git a/datastore/csvio.py b/datastore/csvio.py\n--- a/datastore/csvio.py\n+++ b/datastore/csvio.py\n@@ -34,5 +34,7 @@\n     \"\"\"\n     buf = io.StringIO()\n     writer = csv.writer(buf, lineterminator=\"\\n\")\n+    if header is not None:\n+        writer.writerow(header)\n     writer.writerows(rows)\n     return buf.getvalue()\n",
   "test_command": "",
   "repo_path": "tasks/repos/datastore/datastore-03",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "data",
-    "estimated_lines": 1
+    "category": "csv",
+    "estimated_lines": 2
   },
   "fail_to_pass": [
-    "tests/test_datastore.py::test_filter_records_match",
-    "tests/test_datastore.py::test_filter_records_no_match"
+    "tests/test_csv.py::test_to_csv_with_header"
   ],
   "pass_to_pass": [
-    "tests/test_datastore.py::test_parse_csv_strips",
-    "tests/test_datastore.py::test_group_by_present",
-    "tests/test_datastore.py::test_to_csv_default"
+    "tests/test_csv.py::test_to_csv_basic",
+    "tests/test_csv.py::test_to_csv_quotes_comma",
+    "tests/test_csv.py::test_to_csv_no_header"
   ]
 }

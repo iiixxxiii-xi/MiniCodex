@@ -1,23 +1,22 @@
 {
   "id": "datastore-02",
   "repo": "datastore",
-  "instruction": "Fix `parse_csv` so each field is stripped of surrounding whitespace.",
-  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -12,7 +12,7 @@\n \n def parse_csv(text):\n     \"\"\"Parse a CSV string into a list of rows (lists of fields).\"\"\"\n-    return [line.split(\",\") for line in text.splitlines()]\n+    return [[f.strip() for f in line.split(\",\")] for line in text.splitlines()]\n \n \n def filter_records(records, key, value):\n",
+  "instruction": "Fix `DocumentStore.delete` in `datastore/store.py` so it returns `False` when the key was not present. It currently reports `True` even when nothing was removed, so callers cannot tell whether a delete actually happened.",
+  "gold_patch": "diff --git a/datastore/store.py b/datastore/store.py\n--- a/datastore/store.py\n+++ b/datastore/store.py\n@@ -33,7 +33,8 @@\n         \"\"\"Remove ``key``; return ``True`` if it was present, else ``False``.\"\"\"\n         if key in self._docs:\n             del self._docs[key]\n-        return True\n+            return True\n+        return False\n \n     def __contains__(self, key) -> bool:\n         return key in self._docs\n",
   "test_command": "",
   "repo_path": "tasks/repos/datastore/datastore-02",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "data",
-    "estimated_lines": 1
+    "category": "store",
+    "estimated_lines": 3
   },
   "fail_to_pass": [
-    "tests/test_datastore.py::test_parse_csv_strips",
-    "tests/test_datastore.py::test_parse_csv_extra_spaces"
+    "tests/test_store.py::test_delete_missing"
   ],
   "pass_to_pass": [
-    "tests/test_datastore.py::test_parse_json_object",
-    "tests/test_datastore.py::test_summarize_floats",
-    "tests/test_datastore.py::test_dedupe_keeps_first"
+    "tests/test_store.py::test_delete_existing",
+    "tests/test_store.py::test_contains",
+    "tests/test_store.py::test_put_get"
   ]
 }

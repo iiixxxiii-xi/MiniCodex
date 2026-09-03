@@ -1,0 +1,26 @@
+{
+  "id": "rpncalc-12",
+  "repo": "rpncalc",
+  "instruction": "Fix the calculator so fractional results are preserved rather than truncated to integers. Both the `/` operator in `rpncalc/operators.py` and `format_number` in `rpncalc/evaluator.py` drop the fractional part, so `5 2 /` yields `2` and non-integer results are mis-reported.",
+  "gold_patch": "diff --git a/rpncalc/evaluator.py b/rpncalc/evaluator.py\n--- a/rpncalc/evaluator.py\n+++ b/rpncalc/evaluator.py\n@@ -10,7 +10,9 @@\n     Whole numbers are shown without a trailing ``.0`` (``3.0`` -> ``\"3\"``); other\n     values keep up to 10 significant decimal places.\n     \"\"\"\n-    return str(int(value))\n+    if value == int(value):\n+        return str(int(value))\n+    return f\"{value:.10g}\"\n \n \n def evaluate(expression: str) -> float:\ndiff --git a/rpncalc/operators.py b/rpncalc/operators.py\n--- a/rpncalc/operators.py\n+++ b/rpncalc/operators.py\n@@ -10,7 +10,7 @@\n     if op == \"*\":\n         return a * b\n     if op == \"/\":\n-        return a // b\n+        return safe_divide(a, b)\n     raise ValueError(f\"unknown operator: {op}\")\n \n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/rpncalc/rpncalc-12",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "integration",
+    "estimated_lines": 2
+  },
+  "fail_to_pass": [
+    "tests/test_operators.py::test_apply_div_float",
+    "tests/test_evaluator.py::test_evaluate_float_result",
+    "tests/test_evaluator.py::test_format_number_float",
+    "tests/test_evaluator.py::test_format_number_negative_float"
+  ],
+  "pass_to_pass": [
+    "tests/test_operators.py::test_apply_div",
+    "tests/test_evaluator.py::test_evaluate_division",
+    "tests/test_evaluator.py::test_format_number_integer",
+    "tests/test_evaluator.py::test_format_number_negative_int"
+  ]
+}

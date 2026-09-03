@@ -1,24 +1,21 @@
 {
   "id": "parselib-07",
   "repo": "parselib",
-  "instruction": "Fix `get_field` so a missing key returns the default instead of raising KeyError.",
-  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -71,7 +71,7 @@\n \n def get_field(record, key, default=None):\n     \"\"\"Return ``record[key]`` or ``default`` when the key is missing.\"\"\"\n-    return record[key]\n+    return record.get(key, default)\n \n \n def split_words(text):\n",
+  "instruction": "Fix `parse_ini` in `parselib/ini.py` so a repeated key in the same section keeps the *last* value. The current code uses `dict.setdefault`, so the first occurrence wins and later duplicate keys are silently ignored.",
+  "gold_patch": "diff --git a/parselib/ini.py b/parselib/ini.py\n--- a/parselib/ini.py\n+++ b/parselib/ini.py\n@@ -27,5 +27,5 @@\n             continue\n         key, value = pair\n         target = result if section is None else result[section]\n-        target.setdefault(key, value)\n+        target[key] = value\n     return result\n",
   "test_command": "",
   "repo_path": "tasks/repos/parselib/parselib-07",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "exception",
+    "difficulty": "medium",
+    "category": "ini",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_parselib.py::test_get_field_missing",
-    "tests/test_parselib.py::test_get_field_missing_default"
+    "tests/test_config.py::test_ini_duplicate_key_last_wins"
   ],
   "pass_to_pass": [
-    "tests/test_parselib.py::test_parse_json_object",
-    "tests/test_parselib.py::test_split_words_basic",
-    "tests/test_parselib.py::test_parse_csv_basic",
-    "tests/test_parselib.py::test_get_field_present"
+    "tests/test_config.py::test_ini_single_section",
+    "tests/test_config.py::test_ini_top_level_key"
   ]
 }

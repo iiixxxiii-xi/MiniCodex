@@ -1,23 +1,23 @@
 {
   "id": "fileops-07",
   "repo": "fileops",
-  "instruction": "Fix `read_csv_as_dicts` so it skips the header row instead of turning it into a data record.",
-  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -55,7 +55,7 @@\n     with open(path, encoding=\"utf-8\") as f:\n         rows = list(csv.reader(f))\n     header = rows[0]\n-    return [dict(zip(header, row)) for row in rows]\n+    return [dict(zip(header, row)) for row in rows[1:]]\n \n \n def append_line(path, line):\n",
+  "instruction": "Fix `write_dicts` in `fileops/csvio.py` so it writes proper CSV using the `csv` module's `DictWriter`. The current hand-rolled serializer corrupts values containing `=` and breaks round-tripping through `read_dicts`.",
+  "gold_patch": "diff --git a/fileops/csvio.py b/fileops/csvio.py\n--- a/fileops/csvio.py\n+++ b/fileops/csvio.py\n@@ -21,8 +21,8 @@\n     if fieldnames is None:\n         fieldnames = list(rows[0].keys()) if rows else []\n     ensure_parent(path)\n-    with open_text(path, \"w\", newline=\"\\n\") as handle:\n-        handle.write(\",\".join(fieldnames) + \"\\n\")\n-        for row in rows:\n-            handle.write(\",\".join(f\"{k}={row.get(k)}\" for k in fieldnames) + \"\\n\")\n+    with open_text(path, \"w\", newline=\"\") as handle:\n+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator=\"\\n\")\n+        writer.writeheader()\n+        writer.writerows(rows)\n     return str(path)\n",
   "test_command": "",
   "repo_path": "tasks/repos/fileops/fileops-07",
   "base_commit": "",
   "metadata": {
     "difficulty": "medium",
-    "category": "file-io",
-    "estimated_lines": 1
+    "category": "csv",
+    "estimated_lines": 6
   },
   "fail_to_pass": [
-    "tests/test_fileops.py::test_read_csv_as_dicts_skips_header",
-    "tests/test_fileops.py::test_read_csv_as_dicts_basic"
+    "tests/test_data.py::test_write_dicts_roundtrip",
+    "tests/test_data.py::test_write_dicts_value_with_equals"
   ],
   "pass_to_pass": [
-    "tests/test_fileops.py::test_read_lines_basic",
-    "tests/test_fileops.py::test_count_lines_basic",
-    "tests/test_fileops.py::test_parse_kv_basic"
+    "tests/test_data.py::test_write_dicts_creates_file",
+    "tests/test_data.py::test_list_by_extension_basic",
+    "tests/test_read.py::test_count_lines_no_trailing_newline"
   ]
 }

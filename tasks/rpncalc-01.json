@@ -1,23 +1,23 @@
 {
   "id": "rpncalc-01",
   "repo": "rpncalc",
-  "instruction": "Fix `is_number` so it recognises floats and negative numbers, not just all-digit strings.",
-  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -3,7 +3,11 @@\n \n def is_number(token):\n     \"\"\"Return True if ``token`` can be parsed as a number.\"\"\"\n-    return token.isdigit()\n+    try:\n+        float(token)\n+        return True\n+    except ValueError:\n+        return False\n \n \n def parse_number(token):\n",
+  "instruction": "Fix `is_number` in `rpncalc/tokenizer.py` so it recognizes negative numbers and decimals as numbers. It currently only accepts digit-only strings, so tokens like `-7` or `3.5` are treated as operators and valid expressions are rejected.",
+  "gold_patch": "diff --git a/rpncalc/tokenizer.py b/rpncalc/tokenizer.py\n--- a/rpncalc/tokenizer.py\n+++ b/rpncalc/tokenizer.py\n@@ -3,7 +3,11 @@\n \n def is_number(token: str) -> bool:\n     \"\"\"Return True if ``token`` represents a number (int or float).\"\"\"\n-    return token.isdigit()\n+    try:\n+        float(token)\n+        return True\n+    except ValueError:\n+        return False\n \n \n def parse_number(token: str) -> float:\n",
   "test_command": "",
   "repo_path": "tasks/repos/rpncalc/rpncalc-01",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "parsing",
-    "estimated_lines": 3
+    "category": "tokenization",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_rpncalc.py::test_is_number_float",
-    "tests/test_rpncalc.py::test_is_number_negative"
+    "tests/test_tokenizer.py::test_is_number_negative",
+    "tests/test_tokenizer.py::test_is_number_float"
   ],
   "pass_to_pass": [
-    "tests/test_rpncalc.py::test_tokenize_multi",
-    "tests/test_rpncalc.py::test_precedence_mul_tighter",
-    "tests/test_rpncalc.py::test_format_number_int"
+    "tests/test_tokenizer.py::test_is_number_int",
+    "tests/test_tokenizer.py::test_is_number_operator",
+    "tests/test_tokenizer.py::test_is_number_non_numeric"
   ]
 }

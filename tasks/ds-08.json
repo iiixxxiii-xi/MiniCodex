@@ -1,24 +1,22 @@
 {
   "id": "ds-08",
   "repo": "ds",
-  "instruction": "Fix `LRUCache.put` so it evicts the least-recently-used key (the current code pops the most-recently-used key instead).",
-  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -105,7 +105,7 @@\n         self._items[key] = value\n         self._order.append(key)\n         if len(self._items) > self.capacity:\n-            evict = self._order.pop()\n+            evict = self._order.pop(0)\n             del self._items[evict]\n \n \n",
+  "instruction": "The LRU cache's hit/miss statistics are always zero after a few `get()` calls. The counters are kept in `ds/counter.py` and updated from `ds/lru.py`, and both ends are wrong: the counter's default increment is zero, and a cache miss is recorded against the hit counter.",
+  "gold_patch": "diff --git a/ds/counter.py b/ds/counter.py\n--- a/ds/counter.py\n+++ b/ds/counter.py\n@@ -11,7 +11,7 @@\n         self._value = 0\n         self._lock = threading.Lock()\n \n-    def increment(self, n=0):\n+    def increment(self, n=1):\n         \"\"\"Add ``n`` to the counter and return the new value.\"\"\"\n         with self._lock:\n             self._value += n\ndiff --git a/ds/lru.py b/ds/lru.py\n--- a/ds/lru.py\n+++ b/ds/lru.py\n@@ -18,7 +18,7 @@\n \n     def get(self, key):\n         if key not in self._cache:\n-            self.hits.increment()\n+            self.misses.increment()\n             return -1\n         value = self._cache.pop(key)\n         self._cache[key] = value\n",
   "test_command": "",
   "repo_path": "tasks/repos/ds/ds-08",
   "base_commit": "",
   "metadata": {
     "difficulty": "hard",
-    "category": "data-structure",
-    "estimated_lines": 1
+    "category": "cache",
+    "estimated_lines": 3
   },
   "fail_to_pass": [
-    "tests/test_ds.py::test_lru_put_evicts_least_recent",
-    "tests/test_ds.py::test_lru_put_capacity_one"
+    "tests/test_lru_tree.py::test_lru_hit_miss_counts"
   ],
   "pass_to_pass": [
-    "tests/test_ds.py::test_stack_push_pop",
-    "tests/test_ds.py::test_linked_list_len_basic",
-    "tests/test_ds.py::test_binary_tree_height_basic",
-    "tests/test_ds.py::test_lru_put_updates_existing"
+    "tests/test_lru_tree.py::test_lru_get_missing",
+    "tests/test_lru_tree.py::test_lru_put_get",
+    "tests/test_lru_tree.py::test_lru_evicts_least_recently_used"
   ]
 }

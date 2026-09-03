@@ -1,24 +1,24 @@
 {
   "id": "seqops-06",
   "repo": "seqops",
-  "instruction": "Fix `flatten` so it recursively flattens arbitrarily nested lists, not just a single level.",
-  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -57,7 +57,13 @@\n \n def flatten(nested):\n     \"\"\"Flatten a nested list of lists into a single list.\"\"\"\n-    return [item for sublist in nested for item in sublist]\n+    out = []\n+    for item in nested:\n+        if isinstance(item, list):\n+            out.extend(flatten(item))\n+        else:\n+            out.append(item)\n+    return out\n \n \n def chunk(seq, size):\n",
+  "instruction": "Fix `rotate` in `seqops/transforms.py` so negative rotation counts rotate to the left. It currently takes the absolute value of `k`, so `rotate(items, -1)` rotates right by one instead of left by one.",
+  "gold_patch": "diff --git a/seqops/transforms.py b/seqops/transforms.py\n--- a/seqops/transforms.py\n+++ b/seqops/transforms.py\n@@ -23,7 +23,7 @@\n     n = len(items)\n     if n == 0:\n         return []\n-    k = abs(k) % n\n+    k %= n\n     return items[-k:] + items[:-k]\n \n \n",
   "test_command": "",
   "repo_path": "tasks/repos/seqops/seqops-06",
   "base_commit": "",
   "metadata": {
-    "difficulty": "hard",
-    "category": "algorithm",
-    "estimated_lines": 5
+    "difficulty": "medium",
+    "category": "transforms",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_seqops.py::test_flatten_deep",
-    "tests/test_seqops.py::test_flatten_deeper"
+    "tests/test_transforms.py::test_rotate_negative",
+    "tests/test_transforms.py::test_rotate_negative_multiple"
   ],
   "pass_to_pass": [
-    "tests/test_seqops.py::test_rotate_basic",
-    "tests/test_seqops.py::test_chunk_partial",
-    "tests/test_seqops.py::test_merge_sorted_interleaved",
-    "tests/test_seqops.py::test_flatten_shallow"
+    "tests/test_transforms.py::test_rotate_right",
+    "tests/test_transforms.py::test_rotate_k_gt_len",
+    "tests/test_transforms.py::test_rotate_k_much_gt_len",
+    "tests/test_transforms.py::test_rotate_zero"
   ]
 }

@@ -1,24 +1,23 @@
 {
   "id": "seqops-08",
   "repo": "seqops",
-  "instruction": "Fix `max_subarray` so it handles all-negative arrays (initialising the best sum to 0 returns 0 instead of the largest negative number).",
-  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -73,9 +73,9 @@\n \n def max_subarray(nums):\n     \"\"\"Return the maximum subarray sum (Kadane's algorithm).\"\"\"\n-    best = 0\n-    current = 0\n-    for x in nums:\n+    best = nums[0]\n+    current = nums[0]\n+    for x in nums[1:]:\n         current = max(x, current + x)\n         best = max(best, current)\n     return best\n",
+  "instruction": "Fix `flatten` in `seqops/transforms.py` so it flattens arbitrarily deeply nested lists. It currently flattens only one level, so nested sublists survive in the output instead of being recursively unwrapped.",
+  "gold_patch": "diff --git a/seqops/transforms.py b/seqops/transforms.py\n--- a/seqops/transforms.py\n+++ b/seqops/transforms.py\n@@ -43,7 +43,7 @@\n     result = []\n     for item in nested:\n         if isinstance(item, list):\n-            result.extend(item)\n+            result.extend(flatten(item))\n         else:\n             result.append(item)\n     return result\n",
   "test_command": "",
   "repo_path": "tasks/repos/seqops/seqops-08",
   "base_commit": "",
   "metadata": {
     "difficulty": "medium",
-    "category": "algorithm",
-    "estimated_lines": 2
+    "category": "transforms",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_seqops.py::test_max_subarray_all_negative",
-    "tests/test_seqops.py::test_max_subarray_single_negative"
+    "tests/test_transforms.py::test_flatten_deep",
+    "tests/test_transforms.py::test_flatten_very_deep"
   ],
   "pass_to_pass": [
-    "tests/test_seqops.py::test_rotate_basic",
-    "tests/test_seqops.py::test_binary_search_middle",
-    "tests/test_seqops.py::test_chunk_partial",
-    "tests/test_seqops.py::test_max_subarray_positive"
+    "tests/test_transforms.py::test_flatten_one_level",
+    "tests/test_transforms.py::test_flatten_flat",
+    "tests/test_transforms.py::test_flatten_empty"
   ]
 }

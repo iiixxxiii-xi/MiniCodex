@@ -1,0 +1,25 @@
+{
+  "id": "datastore-10",
+  "repo": "datastore",
+  "instruction": "Fix `load_json` in `datastore/jsonio.py` so it returns the parsed document as-is. It currently unwraps a non-existent `documents` key, so `DocumentStore` (which loads its state through this helper) opens existing files as empty.",
+  "gold_patch": "diff --git a/datastore/jsonio.py b/datastore/jsonio.py\n--- a/datastore/jsonio.py\n+++ b/datastore/jsonio.py\n@@ -12,4 +12,4 @@\n def load_json(path: str):\n     \"\"\"Deserialize the JSON document stored at ``path``.\"\"\"\n     with open(path, \"r\", encoding=\"utf-8\") as f:\n-        return json.load(f).get(\"documents\", {})\n+        return json.load(f)\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/datastore/datastore-10",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "serialization",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_store.py::test_load_existing",
+    "tests/test_store.py::test_flush_persists",
+    "tests/test_store.py::test_load_json_basic"
+  ],
+  "pass_to_pass": [
+    "tests/test_store.py::test_put_get",
+    "tests/test_store.py::test_flush_unicode",
+    "tests/test_store.py::test_close_marks_closed",
+    "tests/test_store.py::test_dump_json_basic"
+  ]
+}

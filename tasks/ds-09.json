@@ -1,23 +1,23 @@
 {
   "id": "ds-09",
   "repo": "ds",
-  "instruction": "Fix `binary_tree_height` so a single-node tree has height 1 (the current code under-counts by one because it drops the leading 1).",
-  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -113,4 +113,4 @@\n     \"\"\"Return the height of a binary tree (0 for an empty tree).\"\"\"\n     if root is None:\n         return 0\n-    return max(binary_tree_height(root.left), binary_tree_height(root.right))\n+    return 1 + max(binary_tree_height(root.left), binary_tree_height(root.right))\n",
+  "instruction": "`ds/lru.py::put` evicts the wrong entry when the cache is full: it removes the most-recently-used key instead of the least-recently-used one, so the key written most recently is the first to be dropped.",
+  "gold_patch": "diff --git a/ds/lru.py b/ds/lru.py\n--- a/ds/lru.py\n+++ b/ds/lru.py\n@@ -29,7 +29,7 @@\n         if key in self._cache:\n             self._cache.pop(key)\n         elif len(self._cache) >= self.capacity:\n-            self._cache.popitem(last=True)\n+            self._cache.popitem(last=False)\n         self._cache[key] = value\n \n     def __len__(self):\n",
   "test_command": "",
   "repo_path": "tasks/repos/ds/ds-09",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "data-structure",
+    "difficulty": "medium",
+    "category": "cache",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_ds.py::test_binary_tree_height_basic",
-    "tests/test_ds.py::test_binary_tree_height_single"
+    "tests/test_lru_tree.py::test_lru_evicts_oldest",
+    "tests/test_lru_tree.py::test_lru_evicts_least_recently_used"
   ],
   "pass_to_pass": [
-    "tests/test_ds.py::test_stack_push_pop",
-    "tests/test_ds.py::test_linked_list_len_basic",
-    "tests/test_ds.py::test_binary_tree_height_empty"
+    "tests/test_lru_tree.py::test_lru_put_get",
+    "tests/test_lru_tree.py::test_lru_update_existing",
+    "tests/test_lru_tree.py::test_lru_len_and_contains"
   ]
 }

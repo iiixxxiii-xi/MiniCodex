@@ -1,0 +1,22 @@
+{
+  "id": "datastore-11",
+  "repo": "datastore",
+  "instruction": "Fix `DocumentStore.close` in `datastore/store.py` so it flushes pending changes before marking the store closed. Closing through the context manager currently drops unflushed writes, so data written inside a `with` block is lost.",
+  "gold_patch": "diff --git a/datastore/store.py b/datastore/store.py\n--- a/datastore/store.py\n+++ b/datastore/store.py\n@@ -53,6 +53,7 @@\n \n     def close(self) -> None:\n         \"\"\"Persist any pending changes and mark the store closed.\"\"\"\n+        self.flush()\n         self._closed = True\n \n     @property\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/datastore/datastore-11",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "resource",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_store.py::test_context_manager_flushes"
+  ],
+  "pass_to_pass": [
+    "tests/test_store.py::test_close_marks_closed",
+    "tests/test_store.py::test_flush_persists",
+    "tests/test_store.py::test_closed_before_close"
+  ]
+}

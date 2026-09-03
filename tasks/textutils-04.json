@@ -1,23 +1,25 @@
 {
   "id": "textutils-04",
   "repo": "textutils",
-  "instruction": "Fix `truncate` so it only appends '...' when the string is actually longer than n. It currently appends the ellipsis unconditionally.",
-  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -22,7 +22,7 @@\n \n def truncate(s, n):\n     \"\"\"Truncate ``s`` to ``n`` characters, appending '...' when truncated.\"\"\"\n-    return s[:n] + \"...\"\n+    return s if len(s) <= n else s[:n] + \"...\"\n \n \n def slugify(s):\n",
+  "instruction": "`slugify` in `textutils/case.py` leaves a stray hyphen at the start or end when the input begins or ends with non-alphanumeric characters. For input `  Hello World  ` it returns `-hello-world-` instead of `hello-world`.",
+  "gold_patch": "diff --git a/textutils/case.py b/textutils/case.py\n--- a/textutils/case.py\n+++ b/textutils/case.py\n@@ -11,7 +11,7 @@\n     \"\"\"\n     lowered = text.lower()\n     hyphenated = re.sub(r\"[^a-z0-9]+\", \"-\", lowered)\n-    return hyphenated\n+    return hyphenated.strip(\"-\")\n \n \n def camel_to_snake(text: str) -> str:\n",
   "test_command": "",
   "repo_path": "tasks/repos/textutils/textutils-04",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "string",
+    "category": "slug",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_textutils.py::test_truncate_short",
-    "tests/test_textutils.py::test_truncate_exact"
+    "tests/test_case.py::test_slugify_leading_trailing",
+    "tests/test_case.py::test_slugify_punctuation"
   ],
   "pass_to_pass": [
-    "tests/test_textutils.py::test_capitalize_words_simple",
-    "tests/test_textutils.py::test_slugify_simple",
-    "tests/test_textutils.py::test_common_prefix_basic"
+    "tests/test_case.py::test_slugify_basic",
+    "tests/test_case.py::test_slugify_multiple_spaces",
+    "tests/test_case.py::test_slugify_already_slug",
+    "tests/test_case.py::test_slugify_accents",
+    "tests/test_case.py::test_slugify_empty"
   ]
 }

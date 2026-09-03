@@ -1,24 +1,22 @@
 {
   "id": "fileops-04",
   "repo": "fileops",
-  "instruction": "Fix `parse_kv` so a value containing '=' is preserved (split on the first '=' only, not every one).",
-  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -33,7 +33,7 @@\n             line = line.strip()\n             if not line:\n                 continue\n-            key, value = line.split(\"=\")\n+            key, value = line.split(\"=\", 1)\n             result[key] = value\n     return result\n \n",
+  "instruction": "Fix `append_line` in `fileops/write.py` so each appended line is terminated by a newline. Appending several lines currently runs them together on a single line.",
+  "gold_patch": "diff --git a/fileops/write.py b/fileops/write.py\n--- a/fileops/write.py\n+++ b/fileops/write.py\n@@ -15,5 +15,5 @@\n     \"\"\"Append ``line`` plus a newline to ``path``, creating parent directories.\"\"\"\n     ensure_parent(path)\n     with open_text(path, \"a\", newline=\"\\n\") as handle:\n-        handle.write(line)\n+        handle.write(line + \"\\n\")\n     return str(path)\n",
   "test_command": "",
   "repo_path": "tasks/repos/fileops/fileops-04",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "file-io",
+    "difficulty": "medium",
+    "category": "writing",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_fileops.py::test_parse_kv_value_with_equals",
-    "tests/test_fileops.py::test_parse_kv_multiple_equals"
+    "tests/test_write.py::test_append_line_adds_newline",
+    "tests/test_write.py::test_append_line_multiple_lines"
   ],
   "pass_to_pass": [
-    "tests/test_fileops.py::test_read_lines_basic",
-    "tests/test_fileops.py::test_tail_basic",
-    "tests/test_fileops.py::test_safe_write_creates_parent",
-    "tests/test_fileops.py::test_parse_kv_basic"
+    "tests/test_write.py::test_append_line_creates_file",
+    "tests/test_write.py::test_safe_write_basic"
   ]
 }

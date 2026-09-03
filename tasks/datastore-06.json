@@ -1,24 +1,22 @@
 {
   "id": "datastore-06",
   "repo": "datastore",
-  "instruction": "Fix `summarize` so it sums floats (e.g. \"1.5\") instead of coercing every value with int() and crashing on decimals.",
-  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -37,7 +37,7 @@\n     \"\"\"Sum a list of numeric strings/values into a float.\"\"\"\n     total = 0.0\n     for v in values:\n-        total += int(v)\n+        total += float(v)\n     return total\n \n \n",
+  "instruction": "Fix `parse_csv` in `datastore/csvio.py` so it returns `(None, [])` for empty input instead of crashing. It currently tries to read `rows[0]` even when there are no rows, raising `IndexError`.",
+  "gold_patch": "diff --git a/datastore/csvio.py b/datastore/csvio.py\n--- a/datastore/csvio.py\n+++ b/datastore/csvio.py\n@@ -13,7 +13,7 @@\n     \"\"\"\n     reader = csv.reader(io.StringIO(text))\n     rows = [row for row in reader]\n-    if has_header:\n+    if has_header and rows:\n         return rows[0], rows[1:]\n     return None, rows\n \n",
   "test_command": "",
   "repo_path": "tasks/repos/datastore/datastore-06",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "numeric",
+    "difficulty": "medium",
+    "category": "csv",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_datastore.py::test_summarize_floats",
-    "tests/test_datastore.py::test_summarize_mixed"
+    "tests/test_csv.py::test_parse_csv_empty"
   ],
   "pass_to_pass": [
-    "tests/test_datastore.py::test_parse_json_object",
-    "tests/test_datastore.py::test_to_csv_default",
-    "tests/test_datastore.py::test_dedupe_keeps_first",
-    "tests/test_datastore.py::test_summarize_ints"
+    "tests/test_csv.py::test_parse_csv_basic",
+    "tests/test_csv.py::test_parse_csv_no_header",
+    "tests/test_csv.py::test_parse_csv_quoted_comma"
   ]
 }

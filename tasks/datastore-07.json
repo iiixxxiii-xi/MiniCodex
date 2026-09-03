@@ -1,24 +1,21 @@
 {
   "id": "datastore-07",
   "repo": "datastore",
-  "instruction": "Fix `nested_get` so it returns None when a key in the dotted path is missing instead of raising a KeyError.",
-  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -44,6 +44,8 @@\n def nested_get(obj, path):\n     \"\"\"Return the value at a dotted ``path`` (e.g. 'a.b.c') or None if missing.\"\"\"\n     for part in path.split(\".\"):\n+        if not isinstance(obj, dict) or part not in obj:\n+            return None\n         obj = obj[part]\n     return obj\n \n",
+  "instruction": "Fix `aggregate` in `datastore/query.py` so it returns the `default` value when the input is empty. It currently calls `func` on an empty list, which raises for `min`/`max` instead of falling back to `default`.",
+  "gold_patch": "diff --git a/datastore/query.py b/datastore/query.py\n--- a/datastore/query.py\n+++ b/datastore/query.py\n@@ -45,6 +45,8 @@\n     Returns ``default`` when there are no records.\n     \"\"\"\n     values = [record[key] for record in records]\n+    if not values:\n+        return default\n     return func(values)\n \n \n",
   "test_command": "",
   "repo_path": "tasks/repos/datastore/datastore-07",
   "base_commit": "",
   "metadata": {
-    "difficulty": "hard",
-    "category": "data",
-    "estimated_lines": 7
+    "difficulty": "medium",
+    "category": "query",
+    "estimated_lines": 2
   },
   "fail_to_pass": [
-    "tests/test_datastore.py::test_nested_get_missing",
-    "tests/test_datastore.py::test_nested_get_deep_missing"
+    "tests/test_query.py::test_aggregate_empty"
   ],
   "pass_to_pass": [
-    "tests/test_datastore.py::test_parse_json_object",
-    "tests/test_datastore.py::test_filter_records_match",
-    "tests/test_datastore.py::test_summarize_floats",
-    "tests/test_datastore.py::test_nested_get_present"
+    "tests/test_query.py::test_aggregate_sum",
+    "tests/test_query.py::test_filter_records_basic"
   ]
 }

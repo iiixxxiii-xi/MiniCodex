@@ -1,23 +1,22 @@
 {
   "id": "numstats-01",
   "repo": "numstats",
-  "instruction": "Fix `mean` so it raises a `ValueError` for an empty input list instead of crashing with a division-by-zero error.",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -3,6 +3,8 @@\n \n def mean(values):\n     \"\"\"Return the arithmetic mean of ``values``.\"\"\"\n+    if not values:\n+        raise ValueError(\"mean of empty sequence\")\n     return sum(values) / len(values)\n \n \n",
+  "instruction": "Fix `mean` in `numstats/descriptive.py` so it raises a `ValueError` when given an empty sequence. `mean([])` currently crashes with a `ZeroDivisionError` instead of reporting the empty-input error.",
+  "gold_patch": "diff --git a/numstats/descriptive.py b/numstats/descriptive.py\n--- a/numstats/descriptive.py\n+++ b/numstats/descriptive.py\n@@ -5,6 +5,8 @@\n \n def mean(data):\n     \"\"\"Return the arithmetic mean of ``data``. Raises ValueError on empty input.\"\"\"\n+    if len(data) == 0:\n+        raise ValueError(\"mean of empty sequence\")\n     return sum(data) / len(data)\n \n \n",
   "test_command": "",
   "repo_path": "tasks/repos/numstats/numstats-01",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "numeric",
+    "category": "descriptive",
     "estimated_lines": 2
   },
   "fail_to_pass": [
-    "tests/test_numstats.py::test_mean_empty_raises",
-    "tests/test_numstats.py::test_mean_empty_raises_message"
+    "tests/test_descriptive.py::test_mean_empty"
   ],
   "pass_to_pass": [
-    "tests/test_numstats.py::test_median_odd",
-    "tests/test_numstats.py::test_variance_basic",
-    "tests/test_numstats.py::test_gcd_basic"
+    "tests/test_descriptive.py::test_mean_basic",
+    "tests/test_descriptive.py::test_mean_single",
+    "tests/test_descriptive.py::test_mean_all_negative"
   ]
 }

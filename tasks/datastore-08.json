@@ -1,23 +1,22 @@
 {
   "id": "datastore-08",
   "repo": "datastore",
-  "instruction": "Fix `dedupe` so it keeps the first occurrence of each key (it currently keeps the duplicates instead).",
-  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -55,7 +55,7 @@\n     seen = set()\n     out = []\n     for r in records:\n-        if r[key] in seen:\n+        if r[key] not in seen:\n             out.append(r)\n         seen.add(r[key])\n     return out\n",
+  "instruction": "Fix `dedupe` in `datastore/query.py` so that when `key` is a string it dedupes by that FIELD, not by the string itself. It currently compares the literal key string for every record, collapsing the whole list down to a single record.",
+  "gold_patch": "diff --git a/datastore/query.py b/datastore/query.py\n--- a/datastore/query.py\n+++ b/datastore/query.py\n@@ -31,7 +31,7 @@\n         elif callable(key):\n             k = key(record)\n         else:\n-            k = key\n+            k = record[key]\n         if k in seen:\n             continue\n         seen.add(k)\n",
   "test_command": "",
   "repo_path": "tasks/repos/datastore/datastore-08",
   "base_commit": "",
   "metadata": {
     "difficulty": "medium",
-    "category": "data",
-    "estimated_lines": 2
+    "category": "query",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_datastore.py::test_dedupe_keeps_first",
-    "tests/test_datastore.py::test_dedupe_all_unique"
+    "tests/test_query.py::test_dedupe_by_field"
   ],
   "pass_to_pass": [
-    "tests/test_datastore.py::test_parse_json_object",
-    "tests/test_datastore.py::test_filter_records_match",
-    "tests/test_datastore.py::test_to_csv_default"
+    "tests/test_query.py::test_dedupe_whole_record",
+    "tests/test_query.py::test_dedupe_empty",
+    "tests/test_query.py::test_select_fields_basic"
   ]
 }

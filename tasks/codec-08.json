@@ -1,24 +1,23 @@
 {
   "id": "codec-08",
   "repo": "codec",
-  "instruction": "Fix `normalize` so it returns the NFC-normalised form (the current code returns the input unchanged, so decomposed forms are not composed).",
-  "gold_patch": "diff --git a/codec.py b/codec.py\n--- a/codec.py\n+++ b/codec.py\n@@ -47,4 +47,4 @@\n \n def normalize(text):\n     \"\"\"Return the NFC-normalised form of ``text``.\"\"\"\n-    return text\n+    return unicodedata.normalize(\"NFC\", text)\n",
+  "instruction": "Fix `normalize` in `codec/text.py` so it composes characters to NFC rather than decomposing to NFD. Precomposed input (e.g. a precomposed 'e-acute') is currently turned into a base letter plus a combining mark, which breaks NFC round-tripping.",
+  "gold_patch": "diff --git a/codec/text.py b/codec/text.py\n--- a/codec/text.py\n+++ b/codec/text.py\n@@ -17,4 +17,4 @@\n \n def normalize(text: str) -> str:\n     \"\"\"Return the NFC-normalised form of ``text``.\"\"\"\n-    return unicodedata.normalize(\"NFD\", text)\n+    return unicodedata.normalize(\"NFC\", text)\n",
   "test_command": "",
   "repo_path": "tasks/repos/codec/codec-08",
   "base_commit": "",
   "metadata": {
     "difficulty": "hard",
-    "category": "encoding",
+    "category": "text",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_codec.py::test_normalize_composed",
-    "tests/test_codec.py::test_normalize_composed_two"
+    "tests/test_text.py::test_normalize_composed",
+    "tests/test_text.py::test_normalize_composed_two"
   ],
   "pass_to_pass": [
-    "tests/test_codec.py::test_char_count_ascii",
-    "tests/test_codec.py::test_hex_encode_basic",
-    "tests/test_codec.py::test_base64_encode_basic",
-    "tests/test_codec.py::test_normalize_already_nfc"
+    "tests/test_text.py::test_normalize_already_nfc",
+    "tests/test_text.py::test_char_count_ascii",
+    "tests/test_text.py::test_byte_count_ascii"
   ]
 }

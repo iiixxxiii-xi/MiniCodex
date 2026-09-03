@@ -1,0 +1,23 @@
+{
+  "id": "fileops-10",
+  "repo": "fileops",
+  "instruction": "Fix `open_text` in `fileops/_open.py` so it opens files as UTF-8 by default. The default encoding is currently ASCII, so reading any non-ASCII file through `read_lines` or `read_dicts` raises `UnicodeDecodeError`.",
+  "gold_patch": "diff --git a/fileops/_open.py b/fileops/_open.py\n--- a/fileops/_open.py\n+++ b/fileops/_open.py\n@@ -5,7 +5,7 @@\n \n \n @contextmanager\n-def open_text(path, mode=\"r\", encoding=\"ascii\", newline=None):\n+def open_text(path, mode=\"r\", encoding=\"utf-8\", newline=None):\n     \"\"\"Open ``path`` as a text file and yield the handle, closing it on exit.\"\"\"\n     handle = open(path, mode, encoding=encoding, newline=newline)\n     try:\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/fileops/fileops-10",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "io",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_read.py::test_read_lines_unicode",
+    "tests/test_data.py::test_read_dicts_unicode"
+  ],
+  "pass_to_pass": [
+    "tests/test_read.py::test_read_lines_basic",
+    "tests/test_write.py::test_safe_write_basic",
+    "tests/test_data.py::test_list_by_extension_basic"
+  ]
+}

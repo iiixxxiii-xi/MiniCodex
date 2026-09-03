@@ -1,23 +1,25 @@
 {
   "id": "numstats-08",
   "repo": "numstats",
-  "instruction": "Fix `fibonacci` so fib(0) returns 0 (the base case currently returns 1 for both 0 and 1).",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -52,7 +52,7 @@\n def fibonacci(n):\n     \"\"\"Return the n-th Fibonacci number (fib(0)=0, fib(1)=1).\"\"\"\n     if n <= 1:\n-        return 1\n+        return n\n     return fibonacci(n - 1) + fibonacci(n - 2)\n \n \n",
+  "instruction": "Fix `is_prime` in `numstats/number_theory.py` so `0` and `1` are reported as non-prime. `is_prime(1)` currently returns `True`.",
+  "gold_patch": "diff --git a/numstats/number_theory.py b/numstats/number_theory.py\n--- a/numstats/number_theory.py\n+++ b/numstats/number_theory.py\n@@ -18,7 +18,7 @@\n     if not isinstance(n, int):\n         raise TypeError(\"n must be an integer\")\n     if n < 2:\n-        return True\n+        return False\n     if n == 2:\n         return True\n     if n % 2 == 0:\n",
   "test_command": "",
   "repo_path": "tasks/repos/numstats/numstats-08",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "numeric",
+    "difficulty": "medium",
+    "category": "number theory",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_numstats.py::test_fibonacci_zero",
-    "tests/test_numstats.py::test_fibonacci_nth"
+    "tests/test_number_theory.py::test_is_prime_zero",
+    "tests/test_number_theory.py::test_is_prime_one"
   ],
   "pass_to_pass": [
-    "tests/test_numstats.py::test_mean_basic",
-    "tests/test_numstats.py::test_is_prime_two",
-    "tests/test_numstats.py::test_gcd_basic"
+    "tests/test_number_theory.py::test_is_prime_two",
+    "tests/test_number_theory.py::test_is_prime_three",
+    "tests/test_number_theory.py::test_is_prime_four",
+    "tests/test_number_theory.py::test_is_prime_large_prime",
+    "tests/test_number_theory.py::test_is_prime_large_composite"
   ]
 }

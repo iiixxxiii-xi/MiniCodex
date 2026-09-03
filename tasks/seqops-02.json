@@ -1,23 +1,25 @@
 {
   "id": "seqops-02",
   "repo": "seqops",
-  "instruction": "Fix `merge_sorted` so it appends the remaining elements of whichever list is not exhausted after the main merge loop.",
-  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -26,6 +26,8 @@\n         else:\n             out.append(b[j])\n             j += 1\n+    out.extend(a[i:])\n+    out.extend(b[j:])\n     return out\n \n \n",
+  "instruction": "Fix `binary_search` in `seqops/search.py` so it returns -1 when the target is not present in the sorted list. It currently returns the loop variable as if it were an insertion index, so every missing target yields a non-negative index instead of -1.",
+  "gold_patch": "diff --git a/seqops/search.py b/seqops/search.py\n--- a/seqops/search.py\n+++ b/seqops/search.py\n@@ -16,4 +16,4 @@\n             lo = mid + 1\n         else:\n             hi = mid - 1\n-    return lo\n+    return -1\n",
   "test_command": "",
   "repo_path": "tasks/repos/seqops/seqops-02",
   "base_commit": "",
   "metadata": {
-    "difficulty": "medium",
-    "category": "algorithm",
-    "estimated_lines": 2
+    "difficulty": "easy",
+    "category": "search",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_seqops.py::test_merge_sorted_one_exhausted",
-    "tests/test_seqops.py::test_merge_sorted_interleaved"
+    "tests/test_search.py::test_missing_below",
+    "tests/test_search.py::test_missing_above",
+    "tests/test_search.py::test_missing_middle"
   ],
   "pass_to_pass": [
-    "tests/test_seqops.py::test_binary_search_middle",
-    "tests/test_seqops.py::test_rotate_basic",
-    "tests/test_seqops.py::test_max_subarray_positive"
+    "tests/test_search.py::test_found_first",
+    "tests/test_search.py::test_found_last",
+    "tests/test_search.py::test_found_middle",
+    "tests/test_search.py::test_single_found"
   ]
 }

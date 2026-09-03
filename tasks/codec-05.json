@@ -1,24 +1,23 @@
 {
   "id": "codec-05",
   "repo": "codec",
-  "instruction": "Fix `url_encode` so it percent-encodes reserved characters such as '/' (the current code passes '/' through unencoded).",
-  "gold_patch": "diff --git a/codec.py b/codec.py\n--- a/codec.py\n+++ b/codec.py\n@@ -27,7 +27,7 @@\n \n def url_encode(text):\n     \"\"\"Percent-encode ``text`` (encoding spaces and reserved characters).\"\"\"\n-    return quote(text)\n+    return quote(text, safe=\"\")\n \n \n def url_decode(text):\n",
+  "instruction": "Fix `url_encode` in `codec/url.py` so reserved characters such as '/' are percent-encoded. It currently calls `quote` with the default `safe='/'`, which lets slashes pass through unencoded.",
+  "gold_patch": "diff --git a/codec/url.py b/codec/url.py\n--- a/codec/url.py\n+++ b/codec/url.py\n@@ -5,7 +5,7 @@\n \n def url_encode(text: str) -> str:\n     \"\"\"Percent-encode ``text``, encoding spaces and reserved characters.\"\"\"\n-    return quote(text)\n+    return quote(text, safe=\"\")\n \n \n def url_decode(text: str) -> str:\n",
   "test_command": "",
   "repo_path": "tasks/repos/codec/codec-05",
   "base_commit": "",
   "metadata": {
     "difficulty": "medium",
-    "category": "encoding",
+    "category": "url",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_codec.py::test_url_encode_reserved",
-    "tests/test_codec.py::test_url_encode_multiple_slashes"
+    "tests/test_url.py::test_url_encode_reserved",
+    "tests/test_url.py::test_url_encode_multiple_slashes"
   ],
   "pass_to_pass": [
-    "tests/test_codec.py::test_base64_encode_basic",
-    "tests/test_codec.py::test_char_count_ascii",
-    "tests/test_codec.py::test_hex_encode_basic",
-    "tests/test_codec.py::test_url_encode_spaces"
+    "tests/test_url.py::test_url_encode_spaces",
+    "tests/test_url.py::test_url_decode_percent",
+    "tests/test_binary.py::test_base64_encode_basic"
   ]
 }

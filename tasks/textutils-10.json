@@ -1,23 +1,25 @@
 {
   "id": "textutils-10",
   "repo": "textutils",
-  "instruction": "Fix `count_occurrences` to count only non-overlapping occurrences and to handle an empty substring. It currently advances one character at a time even after a match and has no empty-substring guard.",
-  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -61,10 +61,14 @@\n \n def count_occurrences(text, sub):\n     \"\"\"Count non-overlapping occurrences of ``sub`` in ``text``.\"\"\"\n+    if not sub:\n+        return 0\n     count = 0\n     i = 0\n     while i < len(text):\n         if text.startswith(sub, i):\n             count += 1\n-        i += 1\n+            i += len(sub)\n+        else:\n+            i += 1\n     return count\n",
+  "instruction": "The shared whitespace splitter in `textutils/_helpers.py` splits on single spaces only, so runs of spaces produce empty words and corrupt `reverse_words`, `capitalize_words`, and `wrap`. `reverse_words('a  b   c')` returns `c   b  a` instead of `c b a`.",
+  "gold_patch": "diff --git a/textutils/_helpers.py b/textutils/_helpers.py\n--- a/textutils/_helpers.py\n+++ b/textutils/_helpers.py\n@@ -10,7 +10,7 @@\n \n def split_words(text: str) -> list[str]:\n     \"\"\"Split ``text`` into words on whitespace, dropping empty strings.\"\"\"\n-    return text.split(\" \")\n+    return text.split()\n \n \n def strip_non_alnum(text: str) -> str:\n",
   "test_command": "",
   "repo_path": "tasks/repos/textutils/textutils-10",
   "base_commit": "",
   "metadata": {
-    "difficulty": "medium",
-    "category": "string",
-    "estimated_lines": 4
+    "difficulty": "hard",
+    "category": "integration",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_textutils.py::test_count_occurrences_overlap",
-    "tests/test_textutils.py::test_count_occurrences_empty_sub"
+    "tests/test_words.py::test_reverse_words_multiple_spaces",
+    "tests/test_words.py::test_capitalize_words_multiple_spaces",
+    "tests/test_wrapping.py::test_wrap_collapses_spaces"
   ],
   "pass_to_pass": [
-    "tests/test_textutils.py::test_reverse_words_two",
-    "tests/test_textutils.py::test_wrap_basic",
-    "tests/test_textutils.py::test_camel_to_snake_lower"
+    "tests/test_words.py::test_reverse_words_basic",
+    "tests/test_words.py::test_reverse_words_three",
+    "tests/test_words.py::test_capitalize_words_basic",
+    "tests/test_wrapping.py::test_wrap_basic"
   ]
 }

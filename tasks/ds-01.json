@@ -1,22 +1,23 @@
 {
   "id": "ds-01",
   "repo": "ds",
-  "instruction": "Fix `linked_list_len` so it counts the final node (the loop currently stops one node early).",
-  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -17,7 +17,7 @@\n def linked_list_len(head):\n     \"\"\"Return the number of nodes in a linked list.\"\"\"\n     count = 0\n-    while head.next is not None:\n+    while head is not None:\n         count += 1\n         head = head.next\n     return count\n",
+  "instruction": "`ds.length` (in `ds/ll.py`) returns one element too few for a non-empty list. A single-node list is reported as length 0 and a three-node list as length 2, because the traversal stops one node before the end. The empty list is reported correctly.",
+  "gold_patch": "diff --git a/ds/ll.py b/ds/ll.py\n--- a/ds/ll.py\n+++ b/ds/ll.py\n@@ -24,7 +24,7 @@\n     \"\"\"Return the number of nodes in the list rooted at ``head``.\"\"\"\n     n = 0\n     cur = head\n-    while cur is not None and cur.nxt is not None:\n+    while cur is not None:\n         n += 1\n         cur = cur.nxt\n     return n\n",
   "test_command": "",
   "repo_path": "tasks/repos/ds/ds-01",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "data-structure",
+    "category": "linked-list",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_ds.py::test_linked_list_len_basic",
-    "tests/test_ds.py::test_linked_list_len_empty"
+    "tests/test_ll.py::test_length_single",
+    "tests/test_ll.py::test_length_three"
   ],
   "pass_to_pass": [
-    "tests/test_ds.py::test_stack_push_pop",
-    "tests/test_ds.py::test_linked_list_reverse_single"
+    "tests/test_ll.py::test_length_empty",
+    "tests/test_ll.py::test_from_seq_order",
+    "tests/test_ll.py::test_to_list_single"
   ]
 }

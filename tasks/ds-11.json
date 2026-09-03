@@ -1,0 +1,23 @@
+{
+  "id": "ds-11",
+  "repo": "ds",
+  "instruction": "`ds/ring.py::RingBuffer.to_list` returns elements in the wrong order after the buffer has wrapped around. It reads from index 0 instead of from the current head, so the oldest slot is reported first even when newer data should come first.",
+  "gold_patch": "diff --git a/ds/ring.py b/ds/ring.py\n--- a/ds/ring.py\n+++ b/ds/ring.py\n@@ -49,5 +49,5 @@\n     def to_list(self):\n         out = []\n         for i in range(self._size):\n-            out.append(self._buf[i])\n+            out.append(self._buf[(self._head + i) % self._capacity])\n         return out\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-11",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "ring-buffer",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_stack_ring.py::test_ring_wraparound",
+    "tests/test_stack_ring.py::test_ring_wraparound_order"
+  ],
+  "pass_to_pass": [
+    "tests/test_stack_ring.py::test_ring_push_pop",
+    "tests/test_stack_ring.py::test_ring_peek",
+    "tests/test_stack_ring.py::test_ring_len"
+  ]
+}

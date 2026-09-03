@@ -1,23 +1,24 @@
 {
   "id": "ds-06",
   "repo": "ds",
-  "instruction": "Fix `RingBuffer.push` so the tail index wraps with modulo once the buffer is full (the current code indexes past the end of the backing array).",
-  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -75,7 +75,7 @@\n         self.size = 0\n \n     def push(self, value):\n-        tail = self.head + self.size\n+        tail = (self.head + self.size) % self.capacity\n         self.buf[tail] = value\n         if self.size < self.capacity:\n             self.size += 1\n",
+  "instruction": "`ds/ll.py::reverse` loses the last node when reversing a list. Reversing `[1, 2, 3]` yields `[2, 1]` instead of `[3, 2, 1]`, and reversing a single-element list yields an empty list. The traversal stops one node too early, so the final node is never linked into the reversed list.",
+  "gold_patch": "diff --git a/ds/ll.py b/ds/ll.py\n--- a/ds/ll.py\n+++ b/ds/ll.py\n@@ -45,7 +45,7 @@\n     \"\"\"Reverse the list in place and return the new head.\"\"\"\n     prev = None\n     cur = head\n-    while cur.nxt is not None:\n+    while cur is not None:\n         nxt = cur.nxt\n         cur.nxt = prev\n         prev = cur\n",
   "test_command": "",
   "repo_path": "tasks/repos/ds/ds-06",
   "base_commit": "",
   "metadata": {
     "difficulty": "hard",
-    "category": "data-structure",
+    "category": "linked-list",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_ds.py::test_ring_buffer_wraparound",
-    "tests/test_ds.py::test_ring_buffer_exact_full"
+    "tests/test_ll.py::test_reverse_single",
+    "tests/test_ll.py::test_reverse_three",
+    "tests/test_ll.py::test_reverse_four"
   ],
   "pass_to_pass": [
-    "tests/test_ds.py::test_stack_push_pop",
-    "tests/test_ds.py::test_linked_list_len_basic",
-    "tests/test_ds.py::test_ring_buffer_partial"
+    "tests/test_ll.py::test_length_three",
+    "tests/test_ll.py::test_from_seq_order",
+    "tests/test_ll.py::test_append_to_existing"
   ]
 }

@@ -1,6 +1,0 @@
-*** Begin Patch
-*** Update File: parselib.py
-@@
--        key, value = line.split("=")
-+        key, value = line.split("=", 1)
-*** End Patch

@@ -1,23 +1,24 @@
 {
   "id": "codec-04",
   "repo": "codec",
-  "instruction": "Fix `hex_decode` so it decodes the bytes back to a UTF-8 string (the current code returns raw bytes).",
-  "gold_patch": "diff --git a/codec.py b/codec.py\n--- a/codec.py\n+++ b/codec.py\n@@ -22,7 +22,7 @@\n \n def hex_decode(text):\n     \"\"\"Decode a hex string back into a UTF-8 string.\"\"\"\n-    return bytes.fromhex(text)\n+    return bytes.fromhex(text).decode(\"utf-8\")\n \n \n def url_encode(text):\n",
+  "instruction": "Fix `encode_query` in `codec/url.py` so the *key* is percent-encoded the same way as the value. The current code interpolates the raw key into the query string without encoding it (and without `str()`-ing it), so keys containing spaces or reserved characters produce an invalid query string.",
+  "gold_patch": "diff --git a/codec/url.py b/codec/url.py\n--- a/codec/url.py\n+++ b/codec/url.py\n@@ -17,7 +17,7 @@\n     \"\"\"Serialize ``params`` into a percent-encoded query string.\"\"\"\n     parts = []\n     for key, value in params.items():\n-        parts.append(f\"{key}={quote(str(value), safe='')}\")\n+        parts.append(f\"{quote(str(key), safe='')}={quote(str(value), safe='')}\")\n     return \"&\".join(parts)\n \n \n",
   "test_command": "",
   "repo_path": "tasks/repos/codec/codec-04",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "encoding",
-    "estimated_lines": 1
+    "difficulty": "medium",
+    "category": "url",
+    "estimated_lines": 3
   },
   "fail_to_pass": [
-    "tests/test_codec.py::test_hex_decode_basic",
-    "tests/test_codec.py::test_hex_roundtrip_unicode"
+    "tests/test_url.py::test_encode_query_encodes_key",
+    "tests/test_url.py::test_encode_query_encodes_reserved"
   ],
   "pass_to_pass": [
-    "tests/test_codec.py::test_base64_decode_basic",
-    "tests/test_codec.py::test_char_count_ascii",
-    "tests/test_codec.py::test_url_decode_percent"
+    "tests/test_url.py::test_encode_query_basic",
+    "tests/test_url.py::test_encode_query_encodes_value",
+    "tests/test_url.py::test_url_encode_spaces",
+    "tests/test_binary.py::test_base64_encode_basic"
   ]
 }

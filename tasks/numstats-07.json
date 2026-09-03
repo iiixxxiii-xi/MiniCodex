@@ -1,23 +1,23 @@
 {
   "id": "numstats-07",
   "repo": "numstats",
-  "instruction": "Fix `clamp` so it returns the lower bound when the value is below the range and the upper bound when it is above (the two returns are currently swapped).",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -43,9 +43,9 @@\n def clamp(value, lo, hi):\n     \"\"\"Clamp ``value`` to the inclusive range [lo, hi].\"\"\"\n     if value < lo:\n+        return lo\n+    if value > hi:\n         return hi\n-    if value > hi:\n-        return lo\n     return value\n \n \n",
+  "instruction": "Fix `fibonacci` in `numstats/number_theory.py` so it raises a `ValueError` for negative `n` instead of silently returning `0`.",
+  "gold_patch": "diff --git a/numstats/number_theory.py b/numstats/number_theory.py\n--- a/numstats/number_theory.py\n+++ b/numstats/number_theory.py\n@@ -5,6 +5,8 @@\n     \"\"\"Return the n-th Fibonacci number (F0=0, F1=1); n must be a non-negative int.\"\"\"\n     if not isinstance(n, int):\n         raise TypeError(\"n must be an integer\")\n+    if n < 0:\n+        raise ValueError(\"n must be non-negative\")\n     a, b = 0, 1\n     for _ in range(n):\n         a, b = b, a + b\n",
   "test_command": "",
   "repo_path": "tasks/repos/numstats/numstats-07",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "numeric",
+    "difficulty": "medium",
+    "category": "number theory",
     "estimated_lines": 2
   },
   "fail_to_pass": [
-    "tests/test_numstats.py::test_clamp_low",
-    "tests/test_numstats.py::test_clamp_high"
+    "tests/test_number_theory.py::test_fibonacci_negative"
   ],
   "pass_to_pass": [
-    "tests/test_numstats.py::test_mean_basic",
-    "tests/test_numstats.py::test_variance_basic",
-    "tests/test_numstats.py::test_gcd_basic"
+    "tests/test_number_theory.py::test_fibonacci_zero",
+    "tests/test_number_theory.py::test_fibonacci_one",
+    "tests/test_number_theory.py::test_fibonacci_ten",
+    "tests/test_number_theory.py::test_fibonacci_non_int"
   ]
 }

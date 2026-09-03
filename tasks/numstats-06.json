@@ -1,24 +1,23 @@
 {
   "id": "numstats-06",
   "repo": "numstats",
-  "instruction": "Fix `moving_average` so it only produces full windows of `window` elements (the current range over-iterates and emits trailing partial windows).",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -37,7 +37,7 @@\n \n def moving_average(values, window):\n     \"\"\"Return the moving average of ``values`` over ``window``.\"\"\"\n-    return [sum(values[i:i + window]) / window for i in range(len(values))]\n+    return [sum(values[i:i + window]) / window for i in range(len(values) - window + 1)]\n \n \n def clamp(value, lo, hi):\n",
+  "instruction": "Fix `variance` in `numstats/descriptive.py` so it uses the correct denominator: `n - 1` for sample variance and `n` for population variance. The sample and population denominators are currently swapped.",
+  "gold_patch": "diff --git a/numstats/descriptive.py b/numstats/descriptive.py\n--- a/numstats/descriptive.py\n+++ b/numstats/descriptive.py\n@@ -41,7 +41,7 @@\n         raise ValueError(\"sample variance requires at least two data points\")\n     m = mean(data)\n     ss = sum((x - m) ** 2 for x in data)\n-    denom = len(data) if sample else len(data) - 1\n+    denom = len(data) - 1 if sample else len(data)\n     return ss / denom\n \n \n",
   "test_command": "",
   "repo_path": "tasks/repos/numstats/numstats-06",
   "base_commit": "",
   "metadata": {
     "difficulty": "medium",
-    "category": "numeric",
+    "category": "descriptive",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_numstats.py::test_moving_average_basic",
-    "tests/test_numstats.py::test_moving_average_window_two"
+    "tests/test_descriptive.py::test_variance_sample",
+    "tests/test_descriptive.py::test_variance_population"
   ],
   "pass_to_pass": [
-    "tests/test_numstats.py::test_mean_basic",
-    "tests/test_numstats.py::test_median_odd",
-    "tests/test_numstats.py::test_clamp_low",
-    "tests/test_numstats.py::test_moving_average_window_one"
+    "tests/test_descriptive.py::test_variance_empty",
+    "tests/test_descriptive.py::test_variance_single_sample_raises",
+    "tests/test_descriptive.py::test_mean_basic"
   ]
 }

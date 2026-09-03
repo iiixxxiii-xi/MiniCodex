@@ -1,24 +1,23 @@
 {
   "id": "rpncalc-06",
   "repo": "rpncalc",
-  "instruction": "Fix `tokenize` so it splits on whitespace and keeps multi-character numbers intact (it currently splits every character).",
-  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -42,7 +42,7 @@\n \n def tokenize(expr):\n     \"\"\"Split an RPN expression string into tokens.\"\"\"\n-    return list(expr.replace(\" \", \"\"))\n+    return expr.split()\n \n \n def evaluate(tokens):\n",
+  "instruction": "Fix `apply` in `rpncalc/operators.py` so the `*` operator is actually supported. The `*` case is missing, so multiplying two operands raises `ValueError: unknown operator` instead of returning the product.",
+  "gold_patch": "diff --git a/rpncalc/operators.py b/rpncalc/operators.py\n--- a/rpncalc/operators.py\n+++ b/rpncalc/operators.py\n@@ -7,6 +7,8 @@\n         return a + b\n     if op == \"-\":\n         return a - b\n+    if op == \"*\":\n+        return a * b\n     if op == \"/\":\n         return safe_divide(a, b)\n     raise ValueError(f\"unknown operator: {op}\")\n",
   "test_command": "",
   "repo_path": "tasks/repos/rpncalc/rpncalc-06",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "parsing",
-    "estimated_lines": 1
+    "difficulty": "medium",
+    "category": "algorithm",
+    "estimated_lines": 2
   },
   "fail_to_pass": [
-    "tests/test_rpncalc.py::test_tokenize_multi",
-    "tests/test_rpncalc.py::test_tokenize_multi_two"
+    "tests/test_operators.py::test_apply_mul",
+    "tests/test_evaluator.py::test_evaluate_multiplication"
   ],
   "pass_to_pass": [
-    "tests/test_rpncalc.py::test_is_number_int",
-    "tests/test_rpncalc.py::test_safe_divide_basic",
-    "tests/test_rpncalc.py::test_format_number_int",
-    "tests/test_rpncalc.py::test_tokenize_single"
+    "tests/test_operators.py::test_apply_add",
+    "tests/test_operators.py::test_apply_div",
+    "tests/test_evaluator.py::test_evaluate_addition"
   ]
 }

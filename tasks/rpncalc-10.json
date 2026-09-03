@@ -1,0 +1,23 @@
+{
+  "id": "rpncalc-10",
+  "repo": "rpncalc",
+  "instruction": "Fix `evaluate` in `rpncalc/evaluator.py` so it reports an error when there are not enough operands for an operator. The operand-count check is missing, so an expression like `3 +` crashes with an `IndexError` instead of a clear `ValueError`.",
+  "gold_patch": "diff --git a/rpncalc/evaluator.py b/rpncalc/evaluator.py\n--- a/rpncalc/evaluator.py\n+++ b/rpncalc/evaluator.py\n@@ -22,6 +22,8 @@\n         if is_number(token):\n             stack.append(parse_number(token))\n         else:\n+            if len(stack) < 2:\n+                raise ValueError(\"not enough operands\")\n             b = stack.pop()\n             a = stack.pop()\n             stack.append(apply(token, a, b))\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/rpncalc/rpncalc-10",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "boundary",
+    "estimated_lines": 2
+  },
+  "fail_to_pass": [
+    "tests/test_evaluator.py::test_evaluate_too_few_operands",
+    "tests/test_evaluator.py::test_evaluate_only_operator"
+  ],
+  "pass_to_pass": [
+    "tests/test_evaluator.py::test_evaluate_empty_expression",
+    "tests/test_evaluator.py::test_evaluate_leftover_operands",
+    "tests/test_evaluator.py::test_evaluate_single_operand"
+  ]
+}

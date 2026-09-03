@@ -1,24 +1,22 @@
 {
   "id": "rpncalc-04",
   "repo": "rpncalc",
-  "instruction": "Fix `safe_divide` so it raises `ZeroDivisionError` on division by zero instead of silently returning 0.",
-  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -31,7 +31,7 @@\n def safe_divide(a, b):\n     \"\"\"Divide ``a`` by ``b``, raising ZeroDivisionError on division by zero.\"\"\"\n     if b == 0:\n-        return 0\n+        raise ZeroDivisionError(\"division by zero\")\n     return a / b\n \n \n",
+  "instruction": "Fix `format_number` in `rpncalc/evaluator.py` so fractional values keep their decimals. The current code formats every value with two fixed decimal places, so `2.5` is rendered as `2.50` and other precisions are lost.",
+  "gold_patch": "diff --git a/rpncalc/evaluator.py b/rpncalc/evaluator.py\n--- a/rpncalc/evaluator.py\n+++ b/rpncalc/evaluator.py\n@@ -12,7 +12,7 @@\n     \"\"\"\n     if value == int(value):\n         return str(int(value))\n-    return f\"{value:.2f}\"\n+    return f\"{value:.10g}\"\n \n \n def evaluate(expression: str) -> float:\n",
   "test_command": "",
   "repo_path": "tasks/repos/rpncalc/rpncalc-04",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "edge-case",
-    "estimated_lines": 2
+    "category": "formatting",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_rpncalc.py::test_safe_divide_by_zero",
-    "tests/test_rpncalc.py::test_safe_divide_zero_dividend"
+    "tests/test_evaluator.py::test_format_number_float",
+    "tests/test_evaluator.py::test_format_number_negative_float"
   ],
   "pass_to_pass": [
-    "tests/test_rpncalc.py::test_apply_add",
-    "tests/test_rpncalc.py::test_tokenize_single",
-    "tests/test_rpncalc.py::test_precedence_mul_tighter",
-    "tests/test_rpncalc.py::test_safe_divide_basic"
+    "tests/test_evaluator.py::test_format_number_integer",
+    "tests/test_evaluator.py::test_format_number_negative_int"
   ]
 }

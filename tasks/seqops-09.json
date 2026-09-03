@@ -1,0 +1,21 @@
+{
+  "id": "seqops-09",
+  "repo": "seqops",
+  "instruction": "Fix `partition` in `seqops/transforms.py` so elements equal to the pivot land in the `equal` bucket. It currently lacks an equal branch, so pivot-equal elements are misclassified into the `greater` bucket.",
+  "gold_patch": "diff --git a/seqops/transforms.py b/seqops/transforms.py\n--- a/seqops/transforms.py\n+++ b/seqops/transforms.py\n@@ -59,6 +59,8 @@\n         c = default_compare(item, pivot)\n         if c < 0:\n             less.append(item)\n+        elif c == 0:\n+            equal.append(item)\n         else:\n             greater.append(item)\n     return less, equal, greater\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/seqops/seqops-09",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "transforms",
+    "estimated_lines": 2
+  },
+  "fail_to_pass": [
+    "tests/test_transforms.py::test_partition_pivot_equal",
+    "tests/test_transforms.py::test_partition_basic"
+  ],
+  "pass_to_pass": [
+    "tests/test_transforms.py::test_partition_no_equal"
+  ]
+}

@@ -1,23 +1,23 @@
 {
   "id": "ds-05",
   "repo": "ds",
-  "instruction": "Fix `stack_peek` so it returns the top element (the last one) instead of the bottom.",
-  "gold_patch": "diff --git a/ds.py b/ds.py\n--- a/ds.py\n+++ b/ds.py\n@@ -64,7 +64,7 @@\n     \"\"\"Return the top of ``stack`` without removing it, raising IndexError when empty.\"\"\"\n     if not stack:\n         raise IndexError(\"peek from empty stack\")\n-    return stack[0]\n+    return stack[-1]\n \n \n class RingBuffer:\n",
+  "instruction": "`ds/ll.py::append` does not actually add the new node to an existing (non-empty) list. The new value is created but never linked to the tail, so the returned list is unchanged and the appended value is lost. Appending to an empty list still works.",
+  "gold_patch": "diff --git a/ds/ll.py b/ds/ll.py\n--- a/ds/ll.py\n+++ b/ds/ll.py\n@@ -37,7 +37,7 @@\n     cur = head\n     while cur.nxt is not None:\n         cur = cur.nxt\n-    cur = Node(value)\n+    cur.nxt = Node(value)\n     return head\n \n \n",
   "test_command": "",
   "repo_path": "tasks/repos/ds/ds-05",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "data-structure",
+    "difficulty": "medium",
+    "category": "linked-list",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_ds.py::test_stack_peek_basic",
-    "tests/test_ds.py::test_stack_peek_two"
+    "tests/test_ll.py::test_append_to_existing",
+    "tests/test_ll.py::test_append_single_element_list"
   ],
   "pass_to_pass": [
-    "tests/test_ds.py::test_linked_list_len_basic",
-    "tests/test_ds.py::test_stack_push_pop",
-    "tests/test_ds.py::test_stack_peek_empty_raises"
+    "tests/test_ll.py::test_append_to_empty",
+    "tests/test_ll.py::test_length_three",
+    "tests/test_ll.py::test_reverse_three"
   ]
 }

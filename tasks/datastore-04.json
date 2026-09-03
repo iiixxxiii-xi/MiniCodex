@@ -1,23 +1,21 @@
 {
   "id": "datastore-04",
   "repo": "datastore",
-  "instruction": "Fix `group_by` so records missing the key are grouped under 'unknown' instead of raising a KeyError.",
-  "gold_patch": "diff --git a/datastore.py b/datastore.py\n--- a/datastore.py\n+++ b/datastore.py\n@@ -24,7 +24,7 @@\n     \"\"\"Group records by the value of ``key`` (missing key -> 'unknown').\"\"\"\n     groups = {}\n     for r in records:\n-        groups.setdefault(r[key], []).append(r)\n+        groups.setdefault(r.get(key, \"unknown\"), []).append(r)\n     return groups\n \n \n",
+  "instruction": "Fix `filter_records` in `datastore/query.py` so it keeps the records that MATCH the predicate. It currently keeps the records for which the predicate is false, returning the inverse of the expected result.",
+  "gold_patch": "diff --git a/datastore/query.py b/datastore/query.py\n--- a/datastore/query.py\n+++ b/datastore/query.py\n@@ -5,7 +5,7 @@\n \n def filter_records(records, predicate):\n     \"\"\"Return the records for which ``predicate(record)`` is truthy.\"\"\"\n-    return [record for record in records if not predicate(record)]\n+    return [record for record in records if predicate(record)]\n \n \n def group_by(records, key):\n",
   "test_command": "",
   "repo_path": "tasks/repos/datastore/datastore-04",
   "base_commit": "",
   "metadata": {
-    "difficulty": "medium",
-    "category": "data",
+    "difficulty": "easy",
+    "category": "query",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_datastore.py::test_group_by_missing_key",
-    "tests/test_datastore.py::test_group_by_present"
+    "tests/test_query.py::test_filter_records_basic"
   ],
   "pass_to_pass": [
-    "tests/test_datastore.py::test_parse_json_object",
-    "tests/test_datastore.py::test_filter_records_match",
-    "tests/test_datastore.py::test_dedupe_keeps_first"
+    "tests/test_query.py::test_filter_records_empty",
+    "tests/test_query.py::test_group_by_basic"
   ]
 }

@@ -1,23 +1,22 @@
 {
   "id": "numstats-03",
   "repo": "numstats",
-  "instruction": "Fix `mode` so it returns the most frequent value itself rather than the frequency count.",
-  "gold_patch": "diff --git a/numstats.py b/numstats.py\n--- a/numstats.py\n+++ b/numstats.py\n@@ -19,7 +19,7 @@\n \n def mode(values):\n     \"\"\"Return the most frequent value in ``values``.\"\"\"\n-    return max(values.count(v) for v in set(values))\n+    return max(set(values), key=values.count)\n \n \n def variance(values):\n",
+  "instruction": "Fix `mode` in `numstats/descriptive.py` so that when multiple values tie for most frequent, the smallest value is returned. For `[3, 1, 3, 1]` it currently returns `3` instead of `1`.",
+  "gold_patch": "diff --git a/numstats/descriptive.py b/numstats/descriptive.py\n--- a/numstats/descriptive.py\n+++ b/numstats/descriptive.py\n@@ -30,7 +30,7 @@\n     for value in data:\n         counts[value] = counts.get(value, 0) + 1\n     max_count = max(counts.values())\n-    return max(v for v, c in counts.items() if c == max_count)\n+    return min(v for v, c in counts.items() if c == max_count)\n \n \n def variance(data, sample=True):\n",
   "test_command": "",
   "repo_path": "tasks/repos/numstats/numstats-03",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "numeric",
+    "category": "descriptive",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_numstats.py::test_mode_basic",
-    "tests/test_numstats.py::test_mode_strings"
+    "tests/test_descriptive.py::test_mode_ties_smallest"
   ],
   "pass_to_pass": [
-    "tests/test_numstats.py::test_mean_basic",
-    "tests/test_numstats.py::test_median_odd",
-    "tests/test_numstats.py::test_gcd_basic"
+    "tests/test_descriptive.py::test_mode_empty",
+    "tests/test_descriptive.py::test_mode_basic",
+    "tests/test_descriptive.py::test_mode_single"
   ]
 }

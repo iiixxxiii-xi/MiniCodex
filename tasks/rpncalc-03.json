@@ -1,24 +1,23 @@
 {
   "id": "rpncalc-03",
   "repo": "rpncalc",
-  "instruction": "Fix `apply` so the division operator returns a float result instead of truncating with integer floor division.",
-  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -24,7 +24,7 @@\n     if op == \"*\":\n         return a * b\n     if op == \"/\":\n-        return a // b\n+        return a / b\n     raise ValueError(f\"unknown operator: {op}\")\n \n \n",
+  "instruction": "Fix the `-` operator in `apply` (in `rpncalc/operators.py`) so it computes `a - b` and not `b - a`. Subtraction is not commutative, so the operand order matters and expressions like `10 4 -` currently produce the wrong sign.",
+  "gold_patch": "diff --git a/rpncalc/operators.py b/rpncalc/operators.py\n--- a/rpncalc/operators.py\n+++ b/rpncalc/operators.py\n@@ -6,7 +6,7 @@\n     if op == \"+\":\n         return a + b\n     if op == \"-\":\n-        return b - a\n+        return a - b\n     if op == \"*\":\n         return a * b\n     if op == \"/\":\n",
   "test_command": "",
   "repo_path": "tasks/repos/rpncalc/rpncalc-03",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "numeric",
+    "category": "algorithm",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_rpncalc.py::test_apply_divide_float",
-    "tests/test_rpncalc.py::test_apply_divide_fraction"
+    "tests/test_operators.py::test_apply_sub",
+    "tests/test_operators.py::test_apply_sub_negative_result"
   ],
   "pass_to_pass": [
-    "tests/test_rpncalc.py::test_safe_divide_basic",
-    "tests/test_rpncalc.py::test_tokenize_single",
-    "tests/test_rpncalc.py::test_format_number_int",
-    "tests/test_rpncalc.py::test_apply_add"
+    "tests/test_operators.py::test_apply_add",
+    "tests/test_operators.py::test_apply_mul",
+    "tests/test_operators.py::test_apply_div"
   ]
 }

@@ -1,23 +1,24 @@
 {
   "id": "textutils-03",
   "repo": "textutils",
-  "instruction": "Fix `count_vowels` so it counts uppercase vowels as well as lowercase ones.",
-  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -17,7 +17,7 @@\n \n def count_vowels(s):\n     \"\"\"Count the vowels (a, e, i, o, u) in ``s``, case-insensitively.\"\"\"\n-    return sum(1 for c in s if c in \"aeiou\")\n+    return sum(1 for c in s if c.lower() in \"aeiou\")\n \n \n def truncate(s, n):\n",
+  "instruction": "`count_vowels` in `textutils/words.py` returns the total number of characters instead of the number of vowels. For input `rhythm` it returns `6` instead of `0`.",
+  "gold_patch": "diff --git a/textutils/words.py b/textutils/words.py\n--- a/textutils/words.py\n+++ b/textutils/words.py\n@@ -24,4 +24,4 @@\n \n def count_vowels(text: str) -> int:\n     \"\"\"Count ASCII vowels (a, e, i, o, u) in ``text``, case-insensitively.\"\"\"\n-    return len(text)\n+    return sum(1 for ch in text if is_vowel(ch))\n",
   "test_command": "",
   "repo_path": "tasks/repos/textutils/textutils-03",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "string",
+    "category": "words",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_textutils.py::test_count_vowels_mixed",
-    "tests/test_textutils.py::test_count_vowels_upper"
+    "tests/test_words.py::test_count_vowels_basic",
+    "tests/test_words.py::test_count_vowels_no_vowels",
+    "tests/test_words.py::test_count_vowels_mixed"
   ],
   "pass_to_pass": [
-    "tests/test_textutils.py::test_reverse_words_two",
-    "tests/test_textutils.py::test_camel_to_snake_multi",
-    "tests/test_textutils.py::test_wrap_basic"
+    "tests/test_words.py::test_count_vowels_empty",
+    "tests/test_words.py::test_reverse_words_basic",
+    "tests/test_words.py::test_capitalize_words_basic"
   ]
 }

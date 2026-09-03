@@ -1,0 +1,27 @@
+{
+  "id": "codec-09",
+  "repo": "codec",
+  "instruction": "Fix `to_bytes` in `codec/_bytes.py` so it encodes with UTF-8, not Latin-1. The Latin-1 codec cannot represent non-ASCII characters, so encoding or byte-counting any CJK text raises `UnicodeEncodeError` and breaks `base64_encode`, `hex_encode` and `byte_count`.",
+  "gold_patch": "diff --git a/codec/_bytes.py b/codec/_bytes.py\n--- a/codec/_bytes.py\n+++ b/codec/_bytes.py\n@@ -3,7 +3,7 @@\n \n def to_bytes(text: str) -> bytes:\n     \"\"\"Encode ``text`` to its UTF-8 bytes.\"\"\"\n-    return text.encode(\"latin-1\")\n+    return text.encode(\"utf-8\")\n \n \n def from_bytes(data: bytes) -> str:\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/codec/codec-09",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "encoding",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_binary.py::test_base64_encode_unicode",
+    "tests/test_binary.py::test_hex_roundtrip_unicode",
+    "tests/test_text.py::test_byte_count_unicode",
+    "tests/test_text.py::test_byte_count_unicode_two"
+  ],
+  "pass_to_pass": [
+    "tests/test_binary.py::test_base64_encode_basic",
+    "tests/test_binary.py::test_hex_encode_basic",
+    "tests/test_text.py::test_char_count_ascii",
+    "tests/test_text.py::test_byte_count_ascii",
+    "tests/test_url.py::test_url_encode_spaces"
+  ]
+}

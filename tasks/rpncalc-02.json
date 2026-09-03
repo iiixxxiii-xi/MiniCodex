@@ -1,24 +1,22 @@
 {
   "id": "rpncalc-02",
   "repo": "rpncalc",
-  "instruction": "Fix `parse_number` so it parses floats (e.g. \"3.5\") instead of only integers.",
-  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -12,7 +12,7 @@\n \n def parse_number(token):\n     \"\"\"Parse ``token`` into an int or float.\"\"\"\n-    return int(token)\n+    return float(token) if \".\" in token else int(token)\n \n \n def apply(op, a, b):\n",
+  "instruction": "Fix `safe_divide` in `rpncalc/operators.py` so division by zero raises `ZeroDivisionError` instead of silently returning 0. The current code swallows the error and returns 0, hiding the mistake from callers.",
+  "gold_patch": "diff --git a/rpncalc/operators.py b/rpncalc/operators.py\n--- a/rpncalc/operators.py\n+++ b/rpncalc/operators.py\n@@ -17,7 +17,7 @@\n def safe_divide(a: float, b: float) -> float:\n     \"\"\"Divide ``a`` by ``b``, raising ``ZeroDivisionError`` when ``b`` is zero.\"\"\"\n     if b == 0:\n-        return 0\n+        raise ZeroDivisionError(\"division by zero\")\n     return a / b\n \n \n",
   "test_command": "",
   "repo_path": "tasks/repos/rpncalc/rpncalc-02",
   "base_commit": "",
   "metadata": {
     "difficulty": "easy",
-    "category": "parsing",
-    "estimated_lines": 1
+    "category": "operators",
+    "estimated_lines": 2
   },
   "fail_to_pass": [
-    "tests/test_rpncalc.py::test_parse_number_float",
-    "tests/test_rpncalc.py::test_parse_number_negative_float"
+    "tests/test_operators.py::test_safe_divide_zero",
+    "tests/test_evaluator.py::test_evaluate_division_by_zero"
   ],
   "pass_to_pass": [
-    "tests/test_rpncalc.py::test_tokenize_single",
-    "tests/test_rpncalc.py::test_safe_divide_basic",
-    "tests/test_rpncalc.py::test_format_number_int",
-    "tests/test_rpncalc.py::test_parse_number_int"
+    "tests/test_operators.py::test_safe_divide_ok",
+    "tests/test_evaluator.py::test_evaluate_division"
   ]
 }

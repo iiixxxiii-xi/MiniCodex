@@ -1,24 +1,23 @@
 {
   "id": "parselib-05",
   "repo": "parselib",
-  "instruction": "Fix `parse_ini` so keys appearing before any [section] are retained (the current code silently drops them).",
-  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -56,6 +56,8 @@\n         key, value = line.split(\"=\", 1)\n         if current is not None:\n             result[current][key.strip()] = value.strip()\n+        else:\n+            result[key.strip()] = value.strip()\n     return result\n \n \n",
+  "instruction": "Fix `load_json` in `parselib/jsonio.py` so it strips ``#``/``;`` comments before parsing. The current code passes the raw text straight to `json.loads`, which rejects comment lines and inline comments, so blank-tolerant JSON with comments fails to parse.",
+  "gold_patch": "diff --git a/parselib/jsonio.py b/parselib/jsonio.py\n--- a/parselib/jsonio.py\n+++ b/parselib/jsonio.py\n@@ -11,5 +11,5 @@\n     Comments are stripped per line before parsing, and surrounding whitespace\n     (including leading/trailing blank lines) is ignored.\n     \"\"\"\n-    cleaned = text\n+    cleaned = \"\\n\".join(strip_comments(line) for line in text.splitlines())\n     return json.loads(cleaned)\n",
   "test_command": "",
   "repo_path": "tasks/repos/parselib/parselib-05",
   "base_commit": "",
   "metadata": {
-    "difficulty": "hard",
-    "category": "parsing",
-    "estimated_lines": 3
+    "difficulty": "medium",
+    "category": "json",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_parselib.py::test_parse_ini_top_level",
-    "tests/test_parselib.py::test_parse_ini_top_level_only"
+    "tests/test_config.py::test_json_with_comments",
+    "tests/test_config.py::test_json_with_semicolon_comments"
   ],
   "pass_to_pass": [
-    "tests/test_parselib.py::test_parse_json_object",
-    "tests/test_parselib.py::test_parse_kv_basic",
-    "tests/test_parselib.py::test_get_field_present",
-    "tests/test_parselib.py::test_parse_ini_sections"
+    "tests/test_config.py::test_json_basic",
+    "tests/test_config.py::test_json_blank_lines",
+    "tests/test_config.py::test_json_nested"
   ]
 }

@@ -1,24 +1,23 @@
 {
   "id": "rpncalc-08",
   "repo": "rpncalc",
-  "instruction": "Fix `format_number` so it preserves the fractional part for non-integer values instead of truncating with int().",
-  "gold_patch": "diff --git a/rpncalc.py b/rpncalc.py\n--- a/rpncalc.py\n+++ b/rpncalc.py\n@@ -60,4 +60,4 @@\n \n def format_number(value):\n     \"\"\"Format a number for display (drop a trailing '.0').\"\"\"\n-    return str(int(value))\n+    return str(int(value)) if value == int(value) else str(value)\n",
+  "instruction": "Fix `tokenize` in `rpncalc/tokenizer.py` so it splits on any whitespace, not just single spaces. The current code splits on a single space character, so runs of spaces, tabs, or newlines leave empty tokens or fail to split.",
+  "gold_patch": "diff --git a/rpncalc/tokenizer.py b/rpncalc/tokenizer.py\n--- a/rpncalc/tokenizer.py\n+++ b/rpncalc/tokenizer.py\n@@ -17,4 +17,4 @@\n \n def tokenize(expression: str) -> list[str]:\n     \"\"\"Split ``expression`` into whitespace-delimited tokens.\"\"\"\n-    return expression.split(\" \")\n+    return expression.split()\n",
   "test_command": "",
   "repo_path": "tasks/repos/rpncalc/rpncalc-08",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "numeric",
+    "difficulty": "medium",
+    "category": "tokenization",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_rpncalc.py::test_format_number_float",
-    "tests/test_rpncalc.py::test_format_number_negative_float"
+    "tests/test_tokenizer.py::test_tokenize_empty",
+    "tests/test_tokenizer.py::test_tokenize_extra_whitespace",
+    "tests/test_tokenizer.py::test_tokenize_whitespace_mixed"
   ],
   "pass_to_pass": [
-    "tests/test_rpncalc.py::test_tokenize_single",
-    "tests/test_rpncalc.py::test_safe_divide_basic",
-    "tests/test_rpncalc.py::test_is_number_int",
-    "tests/test_rpncalc.py::test_format_number_int"
+    "tests/test_tokenizer.py::test_tokenize_basic",
+    "tests/test_tokenizer.py::test_tokenize_single"
   ]
 }

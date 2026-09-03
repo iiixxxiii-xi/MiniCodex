@@ -1,0 +1,24 @@
+{
+  "id": "rpncalc-09",
+  "repo": "rpncalc",
+  "instruction": "Fix `parse_number` in `rpncalc/tokenizer.py` so it returns a numeric value instead of the raw string. It currently returns the token unchanged, so parsed numbers are strings and arithmetic breaks downstream.",
+  "gold_patch": "diff --git a/rpncalc/tokenizer.py b/rpncalc/tokenizer.py\n--- a/rpncalc/tokenizer.py\n+++ b/rpncalc/tokenizer.py\n@@ -12,7 +12,7 @@\n \n def parse_number(token: str) -> float:\n     \"\"\"Parse ``token`` into a float.\"\"\"\n-    return token\n+    return float(token)\n \n \n def tokenize(expression: str) -> list[str]:\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/rpncalc/rpncalc-09",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "tokenization",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_tokenizer.py::test_parse_number_int",
+    "tests/test_tokenizer.py::test_parse_number_float",
+    "tests/test_tokenizer.py::test_parse_number_negative"
+  ],
+  "pass_to_pass": [
+    "tests/test_tokenizer.py::test_tokenize_basic",
+    "tests/test_tokenizer.py::test_is_number_int",
+    "tests/test_tokenizer.py::test_is_number_operator"
+  ]
+}

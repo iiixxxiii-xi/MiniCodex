@@ -1,0 +1,23 @@
+{
+  "id": "ds-10",
+  "repo": "ds",
+  "instruction": "`ds/ring.py::RingBuffer.push` crashes with an `IndexError` once the buffer has wrapped around (after some pops). The write index is computed without wrapping modulo the capacity, so it falls outside the backing array when the head has advanced.",
+  "gold_patch": "diff --git a/ds/ring.py b/ds/ring.py\n--- a/ds/ring.py\n+++ b/ds/ring.py\n@@ -28,7 +28,7 @@\n     def push(self, item):\n         if self.is_full():\n             raise OverflowError(\"ring buffer is full\")\n-        tail = self._head + self._size\n+        tail = (self._head + self._size) % self._capacity\n         self._buf[tail] = item\n         self._size += 1\n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ds/ds-10",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "ring-buffer",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_stack_ring.py::test_ring_wraparound",
+    "tests/test_stack_ring.py::test_ring_wraparound_order"
+  ],
+  "pass_to_pass": [
+    "tests/test_stack_ring.py::test_ring_push_pop",
+    "tests/test_stack_ring.py::test_ring_full",
+    "tests/test_stack_ring.py::test_ring_peek"
+  ]
+}

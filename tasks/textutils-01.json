@@ -1,24 +1,24 @@
 {
   "id": "textutils-01",
   "repo": "textutils",
-  "instruction": "Fix `reverse_words` so it keeps the first word. It currently drops it because of an off-by-one in the loop range.",
-  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -5,7 +5,7 @@\n     \"\"\"Return the words of ``s`` in reverse order.\"\"\"\n     words = s.split()\n     result = []\n-    for i in range(len(words) - 1, 0, -1):\n+    for i in range(len(words) - 1, -1, -1):\n         result.append(words[i])\n     return \" \".join(result)\n \n",
+  "instruction": "`reverse_words` in `textutils/words.py` reverses the characters of the whole string instead of reversing the order of whitespace-separated words. For input `hello world` it returns `dlrow olleh` instead of `world hello`.",
+  "gold_patch": "diff --git a/textutils/words.py b/textutils/words.py\n--- a/textutils/words.py\n+++ b/textutils/words.py\n@@ -10,7 +10,7 @@\n     single spaces and surrounding whitespace is stripped.\n     \"\"\"\n     words = split_words(text)\n-    return text[::-1]\n+    return \" \".join(reversed(words))\n \n \n def capitalize_words(text: str) -> str:\n",
   "test_command": "",
   "repo_path": "tasks/repos/textutils/textutils-01",
   "base_commit": "",
   "metadata": {
-    "difficulty": "medium",
-    "category": "string",
+    "difficulty": "easy",
+    "category": "words",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_textutils.py::test_reverse_words_two",
-    "tests/test_textutils.py::test_reverse_words_three",
-    "tests/test_textutils.py::test_reverse_words_single"
+    "tests/test_words.py::test_reverse_words_basic",
+    "tests/test_words.py::test_reverse_words_three",
+    "tests/test_words.py::test_reverse_words_single"
   ],
   "pass_to_pass": [
-    "tests/test_textutils.py::test_capitalize_words_simple",
-    "tests/test_textutils.py::test_slugify_simple",
-    "tests/test_textutils.py::test_common_prefix_basic"
+    "tests/test_words.py::test_reverse_words_empty",
+    "tests/test_words.py::test_capitalize_words_basic",
+    "tests/test_words.py::test_count_vowels_basic"
   ]
 }

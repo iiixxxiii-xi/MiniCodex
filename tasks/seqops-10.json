@@ -1,0 +1,23 @@
+{
+  "id": "seqops-10",
+  "repo": "seqops",
+  "instruction": "Fix `max_subarray` in `seqops/dynamic.py` so it returns the correct maximum for lists of all-negative numbers (the largest single element) and single-element lists. It currently initialises the running best to 0, which over-counts when every element is negative.",
+  "gold_patch": "diff --git a/seqops/dynamic.py b/seqops/dynamic.py\n--- a/seqops/dynamic.py\n+++ b/seqops/dynamic.py\n@@ -8,8 +8,8 @@\n     \"\"\"\n     if not items:\n         return 0\n-    best = cur = 0\n-    for x in items:\n+    best = cur = items[0]\n+    for x in items[1:]:\n         cur = max(x, cur + x)\n         best = max(best, cur)\n     return best\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/seqops/seqops-10",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "dynamic-programming",
+    "estimated_lines": 2
+  },
+  "fail_to_pass": [
+    "tests/test_transforms.py::test_max_subarray_all_negative",
+    "tests/test_transforms.py::test_max_subarray_single"
+  ],
+  "pass_to_pass": [
+    "tests/test_transforms.py::test_max_subarray_basic",
+    "tests/test_transforms.py::test_max_subarray_positive",
+    "tests/test_transforms.py::test_max_subarray_empty"
+  ]
+}

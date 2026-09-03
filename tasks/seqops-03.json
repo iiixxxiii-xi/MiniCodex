@@ -1,24 +1,23 @@
 {
   "id": "seqops-03",
   "repo": "seqops",
-  "instruction": "Fix `remove_duplicates` so it preserves the original order of first occurrences (using a set currently loses ordering).",
-  "gold_patch": "diff --git a/seqops.py b/seqops.py\n--- a/seqops.py\n+++ b/seqops.py\n@@ -33,7 +33,13 @@\n \n def remove_duplicates(seq):\n     \"\"\"Return ``seq`` with duplicates removed, preserving order.\"\"\"\n-    return list(set(seq))\n+    seen = set()\n+    out = []\n+    for x in seq:\n+        if x not in seen:\n+            seen.add(x)\n+            out.append(x)\n+    return out\n \n \n def rotate(seq, k):\n",
+  "instruction": "Fix `merge_sorted` in `seqops/merge.py` so it keeps the remaining elements of the right list once the left list is exhausted. It currently drops the right tail, so merging [1, 2] with [3, 4, 5] loses 3, 4 and 5.",
+  "gold_patch": "diff --git a/seqops/merge.py b/seqops/merge.py\n--- a/seqops/merge.py\n+++ b/seqops/merge.py\n@@ -15,4 +15,5 @@\n             result.append(right[j])\n             j += 1\n     result.extend(left[i:])\n+    result.extend(right[j:])\n     return result\n",
   "test_command": "",
   "repo_path": "tasks/repos/seqops/seqops-03",
   "base_commit": "",
   "metadata": {
     "difficulty": "medium",
-    "category": "algorithm",
-    "estimated_lines": 5
+    "category": "merge",
+    "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_seqops.py::test_remove_duplicates_order",
-    "tests/test_seqops.py::test_remove_duplicates_order_two"
+    "tests/test_merge.py::test_left_exhausted",
+    "tests/test_merge.py::test_basic"
   ],
   "pass_to_pass": [
-    "tests/test_seqops.py::test_merge_sorted_interleaved",
-    "tests/test_seqops.py::test_chunk_partial",
-    "tests/test_seqops.py::test_flatten_shallow",
-    "tests/test_seqops.py::test_remove_duplicates_no_dupes"
+    "tests/test_merge.py::test_right_exhausted",
+    "tests/test_merge.py::test_one_empty",
+    "tests/test_merge.py::test_both_empty"
   ]
 }

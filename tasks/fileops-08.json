@@ -1,23 +1,23 @@
 {
   "id": "fileops-08",
   "repo": "fileops",
-  "instruction": "Fix `append_line` so it writes a trailing newline after each line (successive appends currently concatenate onto one line).",
-  "gold_patch": "diff --git a/fileops.py b/fileops.py\n--- a/fileops.py\n+++ b/fileops.py\n@@ -61,4 +61,4 @@\n def append_line(path, line):\n     \"\"\"Append ``line`` (plus a newline) to ``path``.\"\"\"\n     with open(path, \"a\", encoding=\"utf-8\") as f:\n-        f.write(line)\n+        f.write(line + \"\\n\")\n",
+  "instruction": "Fix `safe_write` in `fileops/write.py` so writing to an existing file replaces its contents. It currently appends instead of truncating, so a second write leaves the old content in place.",
+  "gold_patch": "diff --git a/fileops/write.py b/fileops/write.py\n--- a/fileops/write.py\n+++ b/fileops/write.py\n@@ -6,7 +6,7 @@\n def safe_write(path, content):\n     \"\"\"Write ``content`` to ``path``, creating missing parent directories first.\"\"\"\n     ensure_parent(path)\n-    with open_text(path, \"a\", newline=\"\\n\") as handle:\n+    with open_text(path, \"w\", newline=\"\\n\") as handle:\n         handle.write(content)\n     return str(path)\n \n",
   "test_command": "",
   "repo_path": "tasks/repos/fileops/fileops-08",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "file-io",
+    "difficulty": "medium",
+    "category": "writing",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_fileops.py::test_append_line_basic",
-    "tests/test_fileops.py::test_append_line_creates_file"
+    "tests/test_write.py::test_safe_write_overwrites",
+    "tests/test_write.py::test_safe_write_truncates_existing"
   ],
   "pass_to_pass": [
-    "tests/test_fileops.py::test_read_lines_basic",
-    "tests/test_fileops.py::test_tail_basic",
-    "tests/test_fileops.py::test_count_lines_basic"
+    "tests/test_write.py::test_safe_write_basic",
+    "tests/test_write.py::test_safe_write_creates_parent_dirs",
+    "tests/test_write.py::test_append_line_adds_newline"
   ]
 }

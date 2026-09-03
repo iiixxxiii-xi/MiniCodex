@@ -1,24 +1,23 @@
 {
   "id": "parselib-03",
   "repo": "parselib",
-  "instruction": "Fix `parse_csv` so quoted fields containing commas are kept as a single field (the current code splits on every comma).",
-  "gold_patch": "diff --git a/parselib.py b/parselib.py\n--- a/parselib.py\n+++ b/parselib.py\n@@ -22,7 +22,7 @@\n \n def parse_csv(text):\n     \"\"\"Parse a CSV string into a list of rows (honouring quoted fields).\"\"\"\n-    return [line.split(\",\") for line in text.splitlines()]\n+    return [row for row in csv.reader(io.StringIO(text))]\n \n \n def parse_kv(text):\n",
+  "instruction": "Fix `parse_kv` in `parselib/textutil.py` so only the *first* separator splits the line. The current code calls `split(sep)` without a maxsplit, so a value that itself contains '=' (e.g. `url = a=b=c`) raises a ValueError instead of returning `(\"url\", \"a=b=c\")`.",
+  "gold_patch": "diff --git a/parselib/textutil.py b/parselib/textutil.py\n--- a/parselib/textutil.py\n+++ b/parselib/textutil.py\n@@ -36,5 +36,5 @@\n         return None\n     if sep not in cleaned:\n         raise ValueError(f\"line has no '{sep}' separator: {line!r}\")\n-    key, value = cleaned.split(sep)\n+    key, value = cleaned.split(sep, 1)\n     return key.strip(), value.strip()\n",
   "test_command": "",
   "repo_path": "tasks/repos/parselib/parselib-03",
   "base_commit": "",
   "metadata": {
-    "difficulty": "hard",
-    "category": "parsing",
+    "difficulty": "easy",
+    "category": "kv",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_parselib.py::test_parse_csv_quoted_field",
-    "tests/test_parselib.py::test_parse_csv_quoted_two"
+    "tests/test_textutil.py::test_parse_kv_value_contains_sep",
+    "tests/test_config.py::test_ini_value_contains_sep"
   ],
   "pass_to_pass": [
-    "tests/test_parselib.py::test_parse_json_object",
-    "tests/test_parselib.py::test_parse_kv_basic",
-    "tests/test_parselib.py::test_get_field_present",
-    "tests/test_parselib.py::test_parse_csv_basic"
+    "tests/test_textutil.py::test_parse_kv_basic",
+    "tests/test_textutil.py::test_parse_kv_no_spaces",
+    "tests/test_textutil.py::test_parse_kv_strips_whitespace"
   ]
 }

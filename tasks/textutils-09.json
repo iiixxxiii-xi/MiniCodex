@@ -1,24 +1,25 @@
 {
   "id": "textutils-09",
   "repo": "textutils",
-  "instruction": "Fix `wrap` so each line contains the full `width` characters. It currently drops the last character of every line.",
-  "gold_patch": "diff --git a/textutils.py b/textutils.py\n--- a/textutils.py\n+++ b/textutils.py\n@@ -56,7 +56,7 @@\n \n def wrap(text, width):\n     \"\"\"Wrap ``text`` into lines of at most ``width`` characters.\"\"\"\n-    return \"\\n\".join(text[i:i + width - 1] for i in range(0, len(text), width))\n+    return \"\\n\".join(text[i:i + width] for i in range(0, len(text), width))\n \n \n def count_occurrences(text, sub):\n",
+  "instruction": "`camel_to_snake` in `textutils/case.py` fails to insert an underscore before a single trailing uppercase letter. `camel_to_snake('camelC')` returns `camelc` instead of `camel_c`.",
+  "gold_patch": "diff --git a/textutils/case.py b/textutils/case.py\n--- a/textutils/case.py\n+++ b/textutils/case.py\n@@ -21,4 +21,4 @@\n     ``\"camelC\"`` -> ``\"camel_c\"``.\n     \"\"\"\n     s1 = re.sub(r\"(.)([A-Z][a-z]+)\", r\"\\1_\\2\", text)\n-    return s1.lower()\n+    return re.sub(r\"([a-z0-9])([A-Z])\", r\"\\1_\\2\", s1).lower()\n",
   "test_command": "",
   "repo_path": "tasks/repos/textutils/textutils-09",
   "base_commit": "",
   "metadata": {
-    "difficulty": "easy",
-    "category": "string",
+    "difficulty": "medium",
+    "category": "case",
     "estimated_lines": 1
   },
   "fail_to_pass": [
-    "tests/test_textutils.py::test_wrap_basic",
-    "tests/test_textutils.py::test_wrap_exact_width"
+    "tests/test_case.py::test_camel_to_snake_single_upper",
+    "tests/test_case.py::test_camel_to_snake_acronym_prefix"
   ],
   "pass_to_pass": [
-    "tests/test_textutils.py::test_reverse_words_two",
-    "tests/test_textutils.py::test_truncate_short",
-    "tests/test_textutils.py::test_slugify_simple",
-    "tests/test_textutils.py::test_wrap_short"
+    "tests/test_case.py::test_camel_to_snake_basic",
+    "tests/test_case.py::test_camel_to_snake_pascal",
+    "tests/test_case.py::test_camel_to_snake_acronym",
+    "tests/test_case.py::test_camel_to_snake_already_snake",
+    "tests/test_case.py::test_camel_to_snake_all_lower"
   ]
 }

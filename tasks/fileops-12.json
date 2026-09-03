@@ -1,0 +1,23 @@
+{
+  "id": "fileops-12",
+  "repo": "fileops",
+  "instruction": "Fix the package's public API in `fileops/__init__.py` so `tail` is exported. `fileops.tail` is currently missing and callers get an `AttributeError`.",
+  "gold_patch": "diff --git a/fileops/__init__.py b/fileops/__init__.py\n--- a/fileops/__init__.py\n+++ b/fileops/__init__.py\n@@ -8,7 +8,7 @@\n \"\"\"\n \n from fileops.csvio import read_dicts, write_dicts\n-from fileops.read import count_lines, read_lines\n+from fileops.read import count_lines, read_lines, tail\n from fileops.scan import list_by_extension\n from fileops.write import append_line, safe_write\n \n",
+  "test_command": "",
+  "repo_path": "tasks/repos/fileops/fileops-12",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "api",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_data.py::test_api_all_public_names_present",
+    "tests/test_data.py::test_api_tail"
+  ],
+  "pass_to_pass": [
+    "tests/test_data.py::test_api_read_lines",
+    "tests/test_data.py::test_api_safe_write",
+    "tests/test_data.py::test_api_list_by_extension"
+  ]
+}
