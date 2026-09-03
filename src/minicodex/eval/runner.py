@@ -28,6 +28,7 @@ from minicodex.runtime.local import builtin_runtime
 from minicodex.runtime.sandbox.docker import DockerError
 from minicodex.toolsource.base import ToolSource
 from minicodex.toolsource.builtin import BuiltinToolSource
+from minicodex.registry.skill import DEFAULT_SKILLS, select_tool_schemas
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,7 @@ class Runner:
         hidden_test_timeout: float = 120.0,
         context_policy: str = "none",
         tool_policy: str = "all",
+        skill_loading: bool = False,
         retry_policy: str = "fixed",
         tool_sources: list[ToolSource] | None = None,
         sandbox: str = "local",
@@ -93,6 +95,7 @@ class Runner:
         self.hidden_test_timeout = hidden_test_timeout
         self.context_policy = context_policy
         self.tool_policy = tool_policy
+        self.skill_loading = skill_loading
         self.retry_policy = retry_policy
         self.tool_sources = tool_sources
         self._ephemeral_dirs: list[Path] = []
@@ -108,7 +111,10 @@ class Runner:
         repo_path = self._resolve_repo_path(task)
         runtime = self._build_runtime(repo_path)
         sink = _ListSink()
-        filtered = self._apply_tool_policy(runtime.schemas())
+        schemas = runtime.schemas()
+        if self.skill_loading:
+            schemas = self._apply_skill_loading(task, schemas)
+        filtered = self._apply_tool_policy(schemas)
         tool_sources = None
         if self.tool_sources:
             tool_sources = [BuiltinToolSource(runtime, schemas=filtered), *self.tool_sources]
@@ -208,6 +214,10 @@ class Runner:
         if self.tool_policy == "no_test_runner":
             return [s for s in schemas if s.get("function", {}).get("name") != "test_runner"]
         return schemas
+
+    def _apply_skill_loading(self, task: Task, schemas: list[dict]) -> list[dict]:
+        """Keep only the tool schemas of the skills relevant to ``task``."""
+        return select_tool_schemas(task.instruction, schemas, DEFAULT_SKILLS)
 
     def _offload_dir(self) -> Path | None:
         """Offload directory for compaction (None lets the loop fall back to a temp dir)."""
