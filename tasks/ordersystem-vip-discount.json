@@ -1,0 +1,22 @@
+{
+  "id": "ordersystem-vip-discount",
+  "repo": "ordersystem",
+  "instruction": "Fix the bug in the order system where VIP customers get the wrong discount. The tests fail when placing an order with a VIP customer. Find the root cause and fix it.",
+  "gold_patch": "diff --git a/ordersystem/pricing.py b/ordersystem/pricing.py\n--- a/ordersystem/pricing.py\n+++ b/ordersystem/pricing.py\n@@ -8,4 +8,4 @@\n \n def line_total(unit_price: float, qty: int, customer_tier: str) -> float:\n     rate = discount_rate(customer_tier)\n-    return unit_price * qty * (1 - rate / 2)\n+    return unit_price * qty * (1 - rate)\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/ordersystem/ordersystem-vip-discount",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "cross-module",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_orders.py::test_order_vip_discount"
+  ],
+  "pass_to_pass": [
+    "tests/test_orders.py::test_discount_rate_vip",
+    "tests/test_orders.py::test_order_regular_no_discount",
+    "tests/test_orders.py::test_order_insufficient_stock"
+  ]
+}

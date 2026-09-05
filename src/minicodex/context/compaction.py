@@ -7,12 +7,14 @@ disk and can be replayed via :func:`load_offloaded`.
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -39,37 +41,56 @@ class CompactionResult:
     compacted: list[dict] = field(default_factory=list)
 
 
-def compact(
+def _estimate_tokens(messages: list[dict]) -> int:
+    """Rough token estimate (~4 chars/token) for triggering condensation."""
+    return sum(len(str(m.get("content", "") or "")) for m in messages) // 4
+
+
+async def compact(
     messages: list[dict],
-    summarizer: Callable[[list[dict]], str],
+    summarizer: Callable[[list[dict]], Any],
     offload_dir: str | Path,
     *,
-    keep_recent: int = 10,
+    keep_recent: int = 50,
+    max_tokens: int = 100000,
 ) -> CompactionResult:
     """Summarize old messages and offload their raw text, keeping recent ones.
 
-    System messages are never compacted. Non-system messages beyond the most
-    recent ``keep_recent`` are passed to ``summarizer``, whose result replaces
-    them in the returned message list as a single summary message. The raw
-    compacted messages are written (one JSON object per line) under
-    ``offload_dir`` so no history is lost.
-
-    Returns an unmodified result (``offload_path is None``) when there are at
-    most ``keep_recent`` non-system messages.
+    System messages are never compacted. Condensation is triggered only when the
+    history's estimated token count exceeds ``max_tokens`` — matching OpenHands'
+    condenser, which condenses on a resource limit (``max_tokens``/``max_size``)
+    rather than a fixed message count. For short tasks the context never fills
+    up, so this is a no-op. Once triggered, messages beyond the most recent
+    ``keep_recent`` are summarized (the back half is left untouched), and their
+    raw text is offloaded to disk so no history is lost.
     """
     system = [m for m in messages if m.get("role") == "system"]
     non_system = [m for m in messages if m.get("role") != "system"]
-    if len(non_system) <= keep_recent:
+    if _estimate_tokens(non_system) <= max_tokens:
         return CompactionResult(messages=list(messages), summary="", offload_path=None)
 
-    cut = len(non_system) - keep_recent
-    compacted = non_system[:cut]
-    recent = non_system[cut:]
+    # The first non-system message is the task instruction (problem statement);
+    # never compact it away — losing it makes the model forget the task.
+    head = non_system[:1]
+    body = non_system[1:]
+    if len(body) <= keep_recent:
+        return CompactionResult(messages=list(messages), summary="", offload_path=None)
+
+    cut = len(body) - keep_recent
+    # Never split an assistant/tool pair: if the recent window would start with an
+    # orphaned "tool" message (its assistant tool_calls would be compacted away),
+    # absorb those tool messages into the compacted set instead.
+    while cut < len(body) and body[cut].get("role") == "tool":
+        cut += 1
+    compacted = body[:cut]
+    recent = body[cut:]
     summary = summarizer(compacted)
+    if inspect.isawaitable(summary):
+        summary = await summary
     offload_path = _write_offload(compacted, offload_dir)
     summary_message = {"role": "user", "content": f"[Context summary of earlier conversation]\n{summary}"}
     return CompactionResult(
-        messages=system + [summary_message] + recent,
+        messages=system + head + [summary_message] + recent,
         summary=summary,
         offload_path=offload_path,
         compacted=compacted,

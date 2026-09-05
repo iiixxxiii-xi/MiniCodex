@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import shutil
 import subprocess
 import tempfile
@@ -36,6 +37,20 @@ logger = logging.getLogger(__name__)
 def _is_docker(runtime) -> bool:
     """True when ``runtime`` can run pytest inside a container (a Docker sandbox)."""
     return callable(getattr(runtime, "run_pytest", None))
+
+
+def _strip_function(source: str, func_name: str) -> str:
+    """Remove a top-level ``def func_name`` block (decorators + body) from source.
+
+    Test functions in these tasks are module-level ``def test_*`` blocks; the
+    regex matches the optional ``@decorator`` lines, the ``def`` line, and its
+    indented body up to the next top-level ``@``/``def`` or end of file.
+    """
+    pattern = re.compile(
+        rf"(?:^@[^\n]*\n)*^def {re.escape(func_name)}\(.*?(?=^(?:@|def) |\Z)",
+        re.M | re.S,
+    )
+    return pattern.sub("", source, count=1)
 
 
 class RunResult(BaseModel):
@@ -78,14 +93,21 @@ class Runner:
         tool_policy: str = "all",
         skill_loading: bool = False,
         retry_policy: str = "fixed",
+        verify: bool = False,
         tool_sources: list[ToolSource] | None = None,
         sandbox: str = "local",
         docker_image: str = "python:3.11-slim",
+        container_cwd: str = "/workspace",
+        activate_cmd: str = "",
+        http_proxy: str = "",
     ) -> None:
         self.model = model
         self.runtime = runtime
         self.sandbox = sandbox
         self.docker_image = docker_image
+        self.container_cwd = container_cwd
+        self.activate_cmd = activate_cmd
+        self.http_proxy = http_proxy
         self.output_dir = Path(output_dir) if output_dir else None
         self.step_limit = step_limit
         self.token_limit = token_limit
@@ -97,6 +119,7 @@ class Runner:
         self.tool_policy = tool_policy
         self.skill_loading = skill_loading
         self.retry_policy = retry_policy
+        self.verify = verify
         self.tool_sources = tool_sources
         self._ephemeral_dirs: list[Path] = []
 
@@ -109,6 +132,7 @@ class Runner:
         populated, never an unhandled exception.
         """
         repo_path = self._resolve_repo_path(task)
+        held_out_tests = self._hide_held_out_tests(repo_path, task)
         runtime = self._build_runtime(repo_path)
         sink = _ListSink()
         schemas = runtime.schemas()
@@ -118,6 +142,12 @@ class Runner:
         tool_sources = None
         if self.tool_sources:
             tool_sources = [BuiltinToolSource(runtime, schemas=filtered), *self.tool_sources]
+        verifier = None
+        if self.verify:
+
+            def verifier():
+                return self._verify_ptp(task, repo_path, runtime)
+
         loop = AgentLoop(
             model=self.model,
             env=runtime,
@@ -132,6 +162,7 @@ class Runner:
             context_policy=self.context_policy,
             retry_policy=self.retry_policy,
             offload_dir=self._offload_dir(),
+            verifier=verifier,
         )
 
         # The loop owns the env lifecycle: AgentLoop.run() stops the env in its
@@ -142,6 +173,7 @@ class Runner:
             runtime.start()
             output = await loop.run(task=task.instruction)
 
+            self._restore_held_out_tests(repo_path, held_out_tests)
             passed, error, _ = await asyncio.to_thread(
                 self._run_hidden_test, task, repo_path, runtime
             )
@@ -162,14 +194,38 @@ class Runner:
                 result.trajectory_path = str(self._persist(task, result, sink.events))
             return result
         finally:
+            self._restore_held_out_tests(repo_path, held_out_tests)
             self._cleanup_runtime(runtime)
             self._cleanup_ephemeral(repo_path)
 
     def _resolve_repo_path(self, task: Task) -> Path:
-        """Return (and create if missing) the workspace directory for ``task``."""
+        """Return a fresh, writable workspace for ``task``.
+
+        When ``task.repo_path`` is set its contents are copied to a throwaway
+        per-run workspace so the model never mutates the shared buggy baseline
+        (SWE-bench style: every run starts from the pristine repo). Otherwise a
+        new empty workspace is created.
+        """
         if task.repo_path:
-            path = Path(task.repo_path)
-            path.mkdir(parents=True, exist_ok=True)
+            src = Path(task.repo_path)
+            # A task may point at a repo that does not exist yet (e.g. a bare
+            # ``test_command`` task with no checkout): create it empty rather
+            # than failing the copy.
+            src.mkdir(parents=True, exist_ok=True)
+            path = Path(tempfile.mkdtemp(prefix=f".run-{task.id}-", dir=str(src.parent)))
+            shutil.rmtree(path, ignore_errors=True)
+            shutil.copytree(
+                src,
+                path,
+                ignore=shutil.ignore_patterns(
+                    "__pycache__", "*.pyc", ".pytest_cache", ".git",
+                    # Build artifacts from source builds (e.g. matplotlib's
+                    # build/freetype-*/...), whose deep paths exceed Windows'
+                    # MAX_PATH and make copytree fail with WinError 123.
+                    "build", "dist", "*.egg-info", ".tox", ".nox",
+                ),
+            )
+            self._ephemeral_dirs.append(path)
             return path.resolve()
         if self.output_dir is not None:
             path = self.output_dir / task.id / "workspace"
@@ -190,7 +246,14 @@ class Runner:
         if self.runtime is not None:
             return self.runtime
         try:
-            return make_runtime(self.sandbox, repo_path, image=self.docker_image)
+            return make_runtime(
+                self.sandbox,
+                repo_path,
+                image=self.docker_image,
+                container_cwd=self.container_cwd,
+                activate_cmd=self.activate_cmd,
+                http_proxy=self.http_proxy,
+            )
         except DockerError as exc:
             logger.warning(
                 "Docker sandbox unavailable (%s); falling back to local sandbox "
@@ -224,6 +287,50 @@ class Runner:
         if self.context_policy == "compaction" and self.output_dir is not None:
             return self.output_dir / "compaction"
         return None
+
+    def _verify_ptp(self, task: Task, repo_path: Path, runtime=None) -> tuple[bool, str]:
+        """Mid-loop verification: run only the P2P (regression) tests.
+
+        The F2P test is held out during the loop (so the model can't invert the
+        answer), so a mid-loop verifier can only check regressions — this is the
+        "verification" primitive: before accepting ``done``, confirm the patch
+        doesn't break existing behaviour.
+        """
+        nodes = task.pass_to_pass
+        if not nodes:
+            return True, ""
+        if _is_docker(runtime):
+            # Batch: run all P2P tests in one invocation (fast for repos with
+            # 100+ regression tests, e.g. the pytest repo).
+            if runtime.run_tests_all(task.repo, nodes, timeout=self.hidden_test_timeout):
+                return True, ""
+            return False, "regression failed (pass_to_pass)"
+        from minicodex.eval.verification import run_tests
+
+        results = run_tests(repo_path, nodes, timeout=self.hidden_test_timeout)
+        failed = [n for n in nodes if not results.get(n, False)]
+        if failed:
+            return False, f"regression failed: {failed}"
+        return True, ""
+
+    def _verify_full(self, task: Task, repo_path: Path, held_out_tests, runtime) -> tuple[bool, str]:
+        """Completion verifier: run the full test matrix before accepting ``done``.
+
+        The F2P tests are held out during the loop (so the model can't invert the
+        answer), but the *verifier* may run them — it restores the F2P tests,
+        runs correctness (F2P) + regression (P2P), then re-hides them before the
+        model is queried again. This matches the verifier-agent pattern: verify
+        against ground truth, not just "no regression".
+        """
+        self._restore_held_out_tests(repo_path, held_out_tests)
+        try:
+            if not runtime.run_tests_all(task.repo, task.fail_to_pass, timeout=self.hidden_test_timeout):
+                return False, "your patch does not pass the hidden tests; re-examine and fix it"
+            if not runtime.run_tests_all(task.repo, task.pass_to_pass, timeout=self.hidden_test_timeout):
+                return False, "your patch breaks existing tests; fix the regression"
+        finally:
+            self._hide_held_out_tests(repo_path, task)
+        return True, ""
 
     def _run_hidden_test(self, task: Task, repo_path: Path, runtime=None) -> tuple[bool, str, str]:
         """Decide PASS/FAIL for the patched workspace.
@@ -267,9 +374,14 @@ class Runner:
     def _verify_matrix(self, task: Task, repo_path: Path, runtime=None) -> tuple[bool, str, str]:
         """Run the task's test matrix (in the sandbox when available) and score it."""
         if _is_docker(runtime):
-            nodes = task.fail_to_pass + task.pass_to_pass
-            results = runtime.run_pytest(nodes, timeout=self.hidden_test_timeout)
-            return verdict_from_results(task, results)
+            # Batch each side (F2P then P2P) in a single invocation rather than
+            # per node — a repo like pytest has 100+ regression tests and
+            # per-node execution would make the hidden-test phase take ~10 min.
+            if not runtime.run_tests_all(task.repo, task.fail_to_pass, timeout=self.hidden_test_timeout):
+                return False, "fail_to_pass failed", ""
+            if not runtime.run_tests_all(task.repo, task.pass_to_pass, timeout=self.hidden_test_timeout):
+                return False, "pass_to_pass failed", ""
+            return True, "", ""
         return verify_workspace(task, repo_path, timeout=self.hidden_test_timeout)
 
     def _collect_patch(self, repo_path: Path) -> str:
@@ -305,6 +417,43 @@ class Runner:
         for path in self._ephemeral_dirs:
             if path == repo_path:
                 shutil.rmtree(path, ignore_errors=True)
+
+    def _hide_held_out_tests(self, repo_path: Path, task: Task) -> dict[str, str] | None:
+        """Hide the F2P tests (which encode the expected behavior) from the model.
+
+        SWE-bench-style: the ``fail_to_pass`` tests reveal the answer, so strip
+        their ``def`` blocks from the test files while keeping the ``pass_to_pass``
+        regression tests visible — the agent can still run P2P tests to verify its
+        fix (the "verification" primitive). Returns ``{relative_path: original}``
+        for restoration, or ``None`` when there is nothing to hide.
+        """
+        if not task.fail_to_pass:
+            return None
+        by_file: dict[str, set[str]] = {}
+        for node in task.fail_to_pass:
+            parts = node.split("::")
+            file_rel, func = parts[0], parts[-1]
+            if file_rel and func:
+                by_file.setdefault(file_rel, set()).add(func)
+        held: dict[str, str] = {}
+        for file_rel, funcs in by_file.items():
+            path = repo_path / file_rel
+            if not path.is_file():
+                continue
+            original = path.read_text(encoding="utf-8")
+            stripped = original
+            for func in funcs:
+                stripped = _strip_function(stripped, func)
+            held[file_rel] = original
+            path.write_text(stripped, encoding="utf-8")
+        return held
+
+    def _restore_held_out_tests(self, repo_path: Path, held: dict[str, str] | None) -> None:
+        """Restore the original test-file content hidden by ``_hide_held_out_tests``."""
+        if not held:
+            return
+        for file_rel, original in held.items():
+            (repo_path / file_rel).write_text(original, encoding="utf-8")
 
 
 __all__ = ["RunResult", "Runner"]

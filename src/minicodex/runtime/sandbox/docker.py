@@ -18,9 +18,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import shlex
 import shutil
 import subprocess
+import time
 import uuid
 from collections.abc import Callable
 from pathlib import Path
@@ -56,6 +58,12 @@ class DockerRuntimeConfig(BaseModel):
     executable: str = "docker"
     container_timeout: str = "2h"
     pull_timeout: int = 120
+    # Shell snippet prepended to every in-container command (e.g. to activate a
+    # conda environment). Empty by default for plain ``python``-based images.
+    activate_cmd: str = ""
+    # HTTP(S) proxy passed into the container's environment (e.g. a host Clash
+    # proxy so network-dependent tests can reach the internet). Empty = none.
+    http_proxy: str = ""
 
 
 def docker_available(executable: str = "docker", *, timeout: float = 5.0) -> bool:
@@ -98,6 +106,8 @@ class DockerRuntime:
         executable: str | None = None,
         container_timeout: str = "2h",
         pull_timeout: int = 120,
+        activate_cmd: str = "",
+        http_proxy: str = "",
     ) -> None:
         self.config = DockerRuntimeConfig(
             image=image,
@@ -106,6 +116,8 @@ class DockerRuntime:
             executable=executable or os.getenv("MINICODEX_DOCKER_EXECUTABLE", "docker"),
             container_timeout=container_timeout,
             pull_timeout=pull_timeout,
+            activate_cmd=activate_cmd,
+            http_proxy=http_proxy,
         )
         # The host directory bind-mounted into the container. File tools operate
         # here (changes are visible in the container via the bind mount); shell
@@ -128,6 +140,14 @@ class DockerRuntime:
         argv = [self.config.executable, "run", "-d", "--name", container_name]
         if self._mount_path is not None:
             argv += ["-v", f"{self._mount_path}:{self.config.cwd}"]
+        if self.config.http_proxy:
+            argv += [
+                "-e", f"HTTP_PROXY={self.config.http_proxy}",
+                "-e", f"HTTPS_PROXY={self.config.http_proxy}",
+                "-e", f"http_proxy={self.config.http_proxy}",
+                "-e", f"https_proxy={self.config.http_proxy}",
+                "-e", f"NO_PROXY=localhost,127.0.0.1",
+            ]
         argv += [
             "-w",
             self.config.cwd,
@@ -163,6 +183,8 @@ class DockerRuntime:
         command-level failures."""
         if self.container_id is None:
             return failure("Container is not running.", retryable=False)
+        if self.config.activate_cmd:
+            command = f"{self.config.activate_cmd} && {command}"
         effective_timeout = timeout if timeout is not None else self.config.timeout
         argv = [
             self.config.executable,
@@ -174,32 +196,45 @@ class DockerRuntime:
             "-lc",
             command,
         ]
-        try:
-            result = subprocess.run(
-                argv,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=effective_timeout,
-            )
-        except subprocess.TimeoutExpired:
-            logger.warning("command timed out after %ss: %s", effective_timeout, command)
-            return failure(
-                f"Command timed out after {effective_timeout}s: {command}", retryable=True
-            )
-        except FileNotFoundError:
-            return failure(
-                f"Docker executable not found: {self.config.executable}", retryable=False
-            )
-        output = combine_output(result)
-        if result.returncode != 0:
+        # The Windows docker CLI can transiently crash (a Go panic in its winio
+        # named-pipe layer) under rapid-fire ``docker exec`` calls, dumping a
+        # goroutine stack and exiting non-zero. Retry those crashes rather than
+        # treating them as a command-level failure.
+        last_output = ""
+        for attempt in range(3):
+            try:
+                result = subprocess.run(
+                    argv,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=effective_timeout,
+                )
+            except subprocess.TimeoutExpired:
+                logger.warning("command timed out after %ss: %s", effective_timeout, command)
+                return failure(
+                    f"Command timed out after {effective_timeout}s: {command}", retryable=True
+                )
+            except FileNotFoundError:
+                return failure(
+                    f"Docker executable not found: {self.config.executable}", retryable=False
+                )
+            last_output = combine_output(result)
+            if result.returncode == 0:
+                return ok(last_output)
+            # A docker CLI panic is a transport failure, not a command failure:
+            # retry the exec rather than reporting a bogus non-zero exit.
+            if "panic:" in last_output or "goroutine " in last_output:
+                logger.warning("docker CLI crash detected (attempt %d); retrying", attempt + 1)
+                time.sleep(0.5 * (attempt + 1))
+                continue
             return failure(
                 f"Command exited with code {result.returncode}",
-                output=output,
+                output=last_output,
                 returncode=result.returncode,
             )
-        return ok(output)
+        return failure("docker exec failed repeatedly", output=last_output, returncode=-1)
 
     async def run_command(self, command: str, *, timeout: float | None = None) -> dict:
         """Async wrapper around :meth:`run_command_sync`."""
@@ -217,6 +252,50 @@ class DockerRuntime:
             result = self.run_command_sync(command, timeout=timeout)
             results[node] = result["returncode"] == 0
         return results
+
+    def run_pytest_batch(self, node_ids: list[str], *, timeout: float = 300.0) -> bool:
+        """Run all ``node_ids`` in a single pytest invocation; True if all passed.
+
+        A single ``docker exec`` per *batch* (instead of per node) makes the
+        hidden-test phase tractable for instances with 100+ regression tests
+        (e.g. the pytest repo), where per-node execution would take ~10 min.
+        """
+        if not node_ids:
+            return True
+        nodes = " ".join(shlex.quote(n) for n in node_ids)
+        command = f"python -m pytest {nodes} -q --no-header --tb=no"
+        result = self.run_command_sync(command, timeout=timeout)
+        return result["returncode"] == 0
+
+    def run_tests_all(self, repo: str, node_ids: list[str], *, timeout: float = 300.0) -> bool:
+        """Run all ``node_ids`` with the repo's own runner; True if all passed.
+
+        pytest-based repos batch into a single invocation; sympy uses its own
+        ``bin/test -k`` runner (node IDs are ``test_<name>``), and django uses
+        ``tests/runtests.py`` (node IDs are ``test_name (module.Class)``) — both
+        run per node.
+        """
+        if not node_ids:
+            return True
+        key = repo.split("/")[0]
+        if key == "sympy":
+            for node in node_ids:
+                command = f"python bin/test -C --verbose -k {shlex.quote(node[5:])}"
+                if self.run_command_sync(command, timeout=timeout)["returncode"] != 0:
+                    return False
+            return True
+        if key == "django":
+            for node in node_ids:
+                m = re.match(r"^(\S+) \((.+)\)$", node)
+                label = f"{m.group(2)}.{m.group(1)}" if m else node
+                command = (
+                    "PYTHONPATH=/testbed DJANGO_SETTINGS_MODULE=tests.test_sqlite "
+                    f"python tests/runtests.py {shlex.quote(label)} --verbosity 0"
+                )
+                if self.run_command_sync(command, timeout=timeout)["returncode"] != 0:
+                    return False
+            return True
+        return self.run_pytest_batch(node_ids, timeout=timeout)
 
     # -- Runtime protocol ---------------------------------------------------
 

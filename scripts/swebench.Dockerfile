@@ -12,4 +12,7 @@ RUN sed -i 's@deb.debian.org@mirrors.tuna.tsinghua.edu.cn@g' /etc/apt/sources.li
 
 # Use a configurable pip index (mirror for constrained networks).
 ARG PIP_INDEX_URL=https://pypi.org/simple
-RUN pip install --no-cache-dir --index-url "${PIP_INDEX_URL}" pytest
+# Dependency-light official SWE-bench repos (pytest/sphinx/pylint/flask/requests)
+# plus their test deps, so their test suites can run inside this sandbox.
+RUN pip install --no-cache-dir --index-url "${PIP_INDEX_URL}" \
+    pytest pytest-mock sphinx pylint astroid flask requests "urllib3<2"

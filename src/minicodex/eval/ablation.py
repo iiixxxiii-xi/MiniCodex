@@ -32,6 +32,7 @@ class AblationPreset(BaseModel):
     context_policy: str = "none"
     tool_policy: str = "all"
     retry_policy: str = "fixed"
+    verify: bool = False
     description: str = ""
 
 
@@ -101,6 +102,59 @@ DEFAULT_PRESETS: dict[str, AblationPreset] = {
         tool_policy="no_test_runner",
         description="ablate tools: hide the test_runner tool",
     ),
+    # Minimal loop WITHOUT test-runner verification, paired against "minimal"
+    # (which keeps the test_runner): the delta isolates verification's effect.
+    "minimal_no_verify": AblationPreset(
+        name="minimal_no_verify",
+        step_limit=5,
+        max_requeries=0,
+        retry_policy="none",
+        tool_policy="no_test_runner",
+        description="minimal loop without test-runner verification",
+    ),
+    # The resume 4-way: which runtime primitive is still indispensable with a
+    # strong model and an unbounded step budget. Each arm varies exactly one
+    # primitive against the bare loop, and "complex" turns them all on.
+    "harness_minimal": AblationPreset(
+        name="harness_minimal",
+        step_limit=0,
+        max_requeries=0,
+        retry_policy="none",
+        context_policy="none",
+        tool_policy="all",
+        verify=False,
+        description="bare ReAct with test_runner (core), no context, no verification, no retry",
+    ),
+    "harness_context": AblationPreset(
+        name="harness_context",
+        step_limit=0,
+        max_requeries=0,
+        retry_policy="none",
+        context_policy="compaction",
+        tool_policy="all",
+        verify=False,
+        description="minimal + context compaction",
+    ),
+    "harness_verification": AblationPreset(
+        name="harness_verification",
+        step_limit=0,
+        max_requeries=0,
+        retry_policy="none",
+        context_policy="none",
+        tool_policy="all",
+        verify=True,
+        description="minimal + post-patch verification (run tests, retry on failure)",
+    ),
+    "harness_complex": AblationPreset(
+        name="harness_complex",
+        step_limit=0,
+        max_requeries=3,
+        retry_policy="fixed",
+        context_policy="compaction",
+        tool_policy="all",
+        verify=True,
+        description="complex harness: context + verification + retry",
+    ),
 }
 
 
@@ -135,6 +189,7 @@ async def run_ablation(
             context_policy=preset.context_policy,
             tool_policy=preset.tool_policy,
             retry_policy=preset.retry_policy,
+            verify=preset.verify,
             sandbox=sandbox,
             docker_image=docker_image,
         )

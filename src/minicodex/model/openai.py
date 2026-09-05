@@ -44,9 +44,6 @@ def to_openai_messages(messages: list[dict]) -> list[dict]:
             )
         elif role == "assistant":
             entry: dict = {"role": "assistant", "content": content}
-            reasoning_content = message.get("reasoning_content", "") or ""
-            if reasoning_content:
-                entry["reasoning_content"] = reasoning_content
             tool_calls = message.get("tool_calls") or []
             if tool_calls:
                 entry["tool_calls"] = [
@@ -60,6 +57,14 @@ def to_openai_messages(messages: list[dict]) -> list[dict]:
                     }
                     for tc in tool_calls
                 ]
+                # DeepSeek thinking mode requires the reasoning_content field to
+                # be present (even empty) on assistant messages that carry
+                # tool_calls, or the follow-up request 400s.
+                entry["reasoning_content"] = message.get("reasoning_content", "") or ""
+            else:
+                reasoning_content = message.get("reasoning_content", "") or ""
+                if reasoning_content:
+                    entry["reasoning_content"] = reasoning_content
             converted.append(entry)
         else:
             converted.append({"role": role, "content": content or ""})
@@ -179,7 +184,7 @@ class OpenAIModel:
             finish_reason=choice.finish_reason,
             model=self.model,
         )
-        return drop_invalid_tool_calls(result, strict_tools)
+        return drop_invalid_tool_calls(result, tools)
 
     async def stream(self, messages: list[dict], tools: list[dict]):
         self._ensure_not_cancelled()

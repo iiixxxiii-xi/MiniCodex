@@ -52,3 +52,36 @@ def test_apply_patch_missing_patch_arg(tmp_path):
     result = run({}, cwd=tmp_path)
     assert result["returncode"] != 0
     assert result["retryable"] is False
+
+
+CLAUDE_PATCH = """*** Begin Patch
+*** Update File: a.txt
+@@
+-hello
++world
+*** End Patch"""
+
+
+def test_apply_patch_claude_format(tmp_path):
+    """The fuzzy applier must handle Claude's ``*** Update File`` format,
+    whose hunk header is a bare ``@@`` (no line numbers)."""
+    _init_repo(tmp_path)
+    result = run({"patch": CLAUDE_PATCH}, cwd=tmp_path)
+    assert result["returncode"] == 0, result["error"]
+    assert (tmp_path / "a.txt").read_text(encoding="utf-8") == "world\n"
+
+
+def test_apply_patch_claude_insertion(tmp_path):
+    """A context hunk (no ``-`` lines) inserts the ``+`` lines at the right spot."""
+    _init_repo(tmp_path)
+    patch = (
+        "*** Begin Patch\n"
+        "*** Update File: a.txt\n"
+        "@@\n"
+        "hello\n"
+        "+inserted\n"
+        "*** End Patch"
+    )
+    result = run({"patch": patch}, cwd=tmp_path)
+    assert result["returncode"] == 0, result["error"]
+    assert (tmp_path / "a.txt").read_text(encoding="utf-8") == "hello\ninserted\n"

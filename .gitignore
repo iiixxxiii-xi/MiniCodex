@@ -7,3 +7,7 @@ results/
 *.log
 .env
 tasks/swebench/repos/
+tasks/swebench50/repos/
+tasks/swebench50/_pending/
+swebench_lite_test.parquet
+scripts/_*.py

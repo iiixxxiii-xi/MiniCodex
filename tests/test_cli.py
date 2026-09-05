@@ -130,7 +130,7 @@ def test_run_sandbox_docker_selects_docker_runtime(tmp_path, monkeypatch):
     cli_main = importlib.import_module("minicodex.cli.main")
     calls: dict = {}
 
-    def fake_make_runtime(sandbox, cwd, *, image="python:3.11-slim"):
+    def fake_make_runtime(sandbox, cwd, *, image="python:3.11-slim", **kwargs):
         calls["sandbox"] = sandbox
         calls["image"] = image
         return builtin_runtime(cwd=cwd)

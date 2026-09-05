@@ -150,7 +150,7 @@ def test_runner_uses_fail_to_pass_matrix_over_test_command(tmp_path):
 def test_runner_build_runtime_uses_docker_sandbox(tmp_path, monkeypatch):
     calls: dict = {}
 
-    def fake_make_runtime(sandbox, cwd, *, image="python:3.11-slim"):
+    def fake_make_runtime(sandbox, cwd, *, image="python:3.11-slim", **kwargs):
         calls["sandbox"] = sandbox
         calls["image"] = image
         return LocalRuntime(cwd=cwd)
@@ -164,7 +164,7 @@ def test_runner_build_runtime_uses_docker_sandbox(tmp_path, monkeypatch):
 
 
 def test_runner_build_runtime_falls_back_on_docker_error(tmp_path, monkeypatch):
-    def fake_make_runtime(sandbox, cwd, *, image="python:3.11-slim"):
+    def fake_make_runtime(sandbox, cwd, *, image="python:3.11-slim", **kwargs):
         raise DockerError("daemon down")
 
     monkeypatch.setattr("minicodex.eval.runner.make_runtime", fake_make_runtime)
@@ -198,6 +198,12 @@ def test_runner_matrix_runs_in_docker_runtime(tmp_path):
     class FakeDocker:
         def run_pytest(self, nodes, *, timeout=120.0):
             return {n: (n == "tests/test_demo.py::test_add") for n in nodes}
+
+        def run_pytest_batch(self, nodes, *, timeout=300.0):
+            return all(n == "tests/test_demo.py::test_add" for n in nodes)
+
+        def run_tests_all(self, repo, nodes, *, timeout=300.0):
+            return all(n == "tests/test_demo.py::test_add" for n in nodes)
 
     rt = FakeDocker()
     task = Task(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import time
@@ -54,9 +55,11 @@ class AgentLoop:
         truncation_limit: int = 8000,
         offload_dir: str | None = None,
         retry_policy: str = "fixed",
+        verifier=None,
     ):
         self.model = model
         self.env = env
+        self.verifier = verifier
         self.budgets = BudgetTracker(step_limit=step_limit, token_limit=token_limit, cost_limit=cost_limit)
         self.requery = RequeryPolicy(max_requeries=max_requeries, policy=retry_policy)
         self.context_policy = ContextPolicy(
@@ -64,6 +67,7 @@ class AgentLoop:
             window=context_window,
             max_len=truncation_limit,
             offload_dir=offload_dir,
+            summarizer=self._model_summarizer,
         )
         self.tools = tools or []
         self._sources = self._build_sources(tool_sources)
@@ -78,6 +82,33 @@ class AgentLoop:
         if self.event_sink is not None:
             self.event_sink.append(event)
 
+    async def _model_summarizer(self, messages: list[dict]) -> str:
+        """Summarize old exploration messages with the model (OpenHands-style).
+
+        Preserves the user's goal, progress, what remains, critical files and
+        failing tests — a coherent summary instead of naive truncation.
+
+        Tool observations carry the meat (file contents, grep hits, test output)
+        and are kept generous (3000 chars); assistant thoughts can be trimmed to
+        300. Truncating tool output to 500 chars (the old behaviour) threw away
+        the exact file paths and bug details, which is why compaction dropped
+        success from 40% to 20%.
+        """
+        parts = []
+        for m in messages:
+            role = m.get("role", "")
+            content = m.get("content", "") or ""
+            cap = 3000 if role == "tool" else 300
+            parts.append(f"[{role}] {str(content)[:cap]}")
+        prompt = (
+            "Summarize the following agent exploration concisely, preserving: "
+            "the user's goal, progress made, what remains to be done, the exact "
+            "file paths examined and edited, and the failing test names.\n\n"
+            + "\n".join(parts)
+        )
+        response = await self.model.query([make_message("user", prompt)], [])
+        return response.thought or response.reasoning_content or "(summary unavailable)"
+
     async def run(self, task: str = "") -> StepOutput:
         self.messages = [make_message("system", "You are a coding agent."), make_message("user", task)]
         try:
@@ -86,6 +117,19 @@ class AgentLoop:
                     output = await self.step()
                     self.requery.reset()
                     if output.done:
+                        if self.verifier is not None:
+                            verdict = self.verifier()
+                            if inspect.isawaitable(verdict):
+                                verdict = await verdict
+                            ok, feedback = verdict
+                            if not ok:
+                                self.messages.append(
+                                    make_message(
+                                        "user",
+                                        f"Your patch was rejected: {feedback}. Fix the regression and continue.",
+                                    )
+                                )
+                                continue
                         logger.info("agent finished normally after %d steps", self.budgets.steps)
                         return StepOutput(done=True, exit_status="finished")
                 except FormatError as exc:
@@ -207,7 +251,7 @@ class AgentLoop:
             self.messages.append(
                 make_message("tool", observation_text, tool_name=tool_call.name, tool_call_id=tool_call.id)
             )
-        self.messages = self.context_policy.process_messages(self.messages)
+        self.messages = await self.context_policy.process_messages(self.messages)
         self._emit(
             StepEvent(
                 source=EventSource.CONTROLLER,

@@ -30,13 +30,23 @@ CONTEXT_POLICIES = ("none", "sliding", "truncation", "compaction")
 
 
 def _default_summarizer(messages: list[dict]) -> str:
-    """Naive summarizer: join a short head of each message's content."""
+    """Summarizer: keep the meat of tool observations, trim assistant thoughts.
+
+    Tool messages carry the exploration findings (file contents, grep hits,
+    shell output) — the exact thing the model needs to keep reasoning about the
+    bug. Assistant messages are the model's own chain-of-thought, which can be
+    safely trimmed. Truncating tool observations to 200 chars (the old behaviour)
+    threw away the relevant code, which is why compaction scored 0%.
+    """
     parts = []
     for message in messages:
         content = message.get("content", "") or ""
-        if content:
-            parts.append(content[:200])
-    return " ".join(parts)
+        role = message.get("role", "")
+        if role == "tool":
+            parts.append(content[:3000])
+        elif content:
+            parts.append(content[:300])
+    return "\n\n".join(parts)
 
 
 @dataclass
@@ -46,7 +56,11 @@ class ContextPolicy:
     name: str = "none"
     window: int = 20
     max_len: int = 8000
-    keep_recent: int = 10
+    # How many recent non-system messages to keep verbatim; compaction triggers
+    # only once the history exceeds this. OpenHands' condenser uses ~120 events
+    # before summarizing; a value of 10 (the old default) triggered compaction
+    # every ~10 messages and wrecked the model's context.
+    keep_recent: int = 50
     summarizer: Callable[[list[dict]], str] = field(default_factory=lambda: _default_summarizer)
     offload_dir: str | Path | None = None
 
@@ -56,17 +70,18 @@ class ContextPolicy:
                 f"unknown context policy '{self.name}'; expected one of {CONTEXT_POLICIES}"
             )
 
-    def process_messages(self, messages: list[dict]) -> list[dict]:
+    async def process_messages(self, messages: list[dict]) -> list[dict]:
         """Transform the full message list after a step (sliding / compaction)."""
         if self.name == "sliding":
             return slide(messages, self.window)
         if self.name == "compaction":
-            return compact(
+            result = await compact(
                 messages,
                 self.summarizer,
                 self._offload_dir(),
                 keep_recent=self.keep_recent,
-            ).messages
+            )
+            return result.messages
         return messages
 
     def process_observation(self, text: str) -> str:

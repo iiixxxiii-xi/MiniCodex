@@ -1,0 +1,20 @@
+{
+  "id": "netclient-retry",
+  "repo": "netclient",
+  "instruction": "Fix the bug in the network client where it gives up after one failure instead of retrying. The test 'test_retries_flaky_transport' fails. Find the root cause.",
+  "gold_patch": "diff --git a/netclient/retry.py b/netclient/retry.py\n--- a/netclient/retry.py\n+++ b/netclient/retry.py\n@@ -2,7 +2,7 @@\n \n \n def retry(fn, attempts: int):\n-    for _ in range(1):\n+    for _ in range(attempts):\n         try:\n             return fn()\n         except ConnectionError:\n",
+  "test_command": "",
+  "repo_path": "tasks/repos/netclient/netclient-retry",
+  "base_commit": "",
+  "metadata": {
+    "difficulty": "hard",
+    "category": "cross-module",
+    "estimated_lines": 1
+  },
+  "fail_to_pass": [
+    "tests/test_netclient.py::test_retries_flaky_transport"
+  ],
+  "pass_to_pass": [
+    "tests/test_netclient.py::test_exhausts_retries"
+  ]
+}

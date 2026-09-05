@@ -19,5 +19,5 @@ def height(node):
     if node is None:
         return 0
     if node.left is None and node.right is None:
-        return 1
+        return 0
     return 1 + max(height(node.left), height(node.right))

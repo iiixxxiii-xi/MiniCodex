@@ -65,8 +65,10 @@ def build_model(model_id: str):
         model=model_id,
         base_url=base_url,
         api_key=api_key,
-        max_tokens=8192 if is_v4 else 4096,
-        extra_body={"thinking": {"type": "enabled"}} if is_v4 else None,
+        max_tokens=8192,
+        # DeepSeek V4 thinking mode is incompatible with tool_calls (400s on
+        # multi-turn tool use); disable it like the CUA harness does.
+        extra_body={"thinking": {"type": "disabled"}} if is_v4 else None,
     )
 
 
