@@ -67,7 +67,8 @@ User ──→ Context ──→ Agent Loop ──→ Tool Call
 ## 安装
 
 ```bash
-uv sync   # Python 3.12+
+uv sync               # 开发环境（Python 3.12+）
+uv tool install .     # 装成全局命令 minicodex（开箱即用，无需 uv run）
 ```
 
 ## 使用方式
@@ -85,16 +86,21 @@ result = asyncio.run(Runner(MockModel(), output_dir="results/").run(task))
 print(f"{'PASS' if result.passed else 'FAIL'}  tool_calls={result.metrics.tool_calls}  cost=${result.metrics.cost_usd:.4f}")
 ```
 
-### CLI
+### CLI（claude 风格）
 
 ```bash
-uv run minicodex run examples/smoke.json --mock   # 单任务 → PASS/FAIL + 指标
-uv run minicodex chat --repo .                    # 交互式：自然语言指令，agent 直接改仓库
+minicodex                                    # 直接进对话
+> 帮我修一下 D:\myapp\utils.py 的 bug        # 自动定位到 D:\myapp 干活
+> :cd D:\另一个项目                            # 换目录
+> exit
+
+minicodex 帮我修 D:\myapp\utils.py 的 bug     # 一句话模式（不进入对话）
+minicodex run examples/smoke.json --mock      # 单任务 → PASS/FAIL + 指标
 ```
 
 ### 模型
 
-`--model mock`（无 key、无成本）· `anthropic/<id>` · `openai/<id>` · `deepseek/<id>`（DeepSeek v4 走 thinking）。
+对话默认 `deepseek/v4-pro`（thinking 开）。`--model` 可换：`mock`（无 key）、`anthropic/<id>`、`openai/<id>`、`deepseek/<id>`。
 
 ### SWE-bench 基准
 
