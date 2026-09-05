@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -242,15 +243,70 @@ def report_cmd(
     typer.echo(render_markdown(loaded))
 
 
+_PATH_RE = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s]+")
+
+
+def _infer_repo(instruction: str) -> str:
+    """Pull a Windows path out of the instruction and return a working directory.
+
+    ``"fix the bug in D:\\proj\\src\\f.py"`` → ``D:\\proj\\src`` (the file's parent);
+    a bare directory → itself; no path → the current directory. A path that is
+    truncated or doesn't exist yet walks up to its nearest existing ancestor.
+    """
+    m = _PATH_RE.search(instruction)
+    if not m:
+        return "."
+    path = Path(m.group(0).rstrip(".,;:）)]"))
+    p = path
+    while p != p.parent and not p.exists():
+        p = p.parent
+    if p.is_file():
+        return str(p.parent)
+    return str(p)
+
+
+def _one_shot_chat(instruction: str) -> None:
+    """Run one natural-language instruction (``claude``-style one-shot) and exit."""
+    repo = _infer_repo(instruction)
+    model_obj = resolve_model("deepseek/v4-pro", mock=False)
+    runner = ChatRunner(model_obj, repo, max_requeries=3)
+    turn = asyncio.run(runner.run(instruction))
+    typer.echo(f"working directory: {runner.repo}")
+    typer.echo(turn.summary)
+    if turn.tool_calls:
+        typer.echo("tools: " + ", ".join(turn.tool_calls))
+    if turn.error:
+        typer.echo(f"error: {turn.error}")
+    if turn.diff:
+        typer.echo("--- git diff ---")
+        typer.echo(turn.diff.rstrip("\n"))
+    raise typer.Exit(0 if turn.exit_status != "Error" else 1)
+
+
 def main() -> None:
-    # ``minicodex`` with no subcommand (or with chat flags like ``--repo``) drops
-    # straight into an interactive chat session — the ``claude``-style experience:
-    # ``minicodex --repo D:\proj`` == ``minicodex chat --repo D:\proj``.
+    # ``minicodex`` — the ``claude``-style entry point:
+    #   - no args                                        → interactive chat
+    #   - a natural-language instruction (with a file path) → one-shot run
+    #   - ``--repo``/``--model`` flags                    → interactive chat w/ flags
+    #   - ``run``/``eval``/``report``/``chat``            → the explicit subcommand
     _subcommands = {"run", "chat", "eval", "report"}
     _global_flags = {"--help", "-h", "--install-completion", "--show-completion"}
-    if len(sys.argv) <= 1 or (sys.argv[1] not in _subcommands and sys.argv[1] not in _global_flags):
+
+    if len(sys.argv) <= 1:
+        sys.argv.append("chat")
+        app()
+        return
+
+    first = sys.argv[1]
+    if first in _subcommands or first in _global_flags:
+        app()
+        return
+    if first.startswith("-"):
         sys.argv.insert(1, "chat")
-    app()
+        app()
+        return
+
+    _one_shot_chat(" ".join(sys.argv[1:]))
 
 
 if __name__ == "__main__":
