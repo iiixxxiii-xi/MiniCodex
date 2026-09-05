@@ -14,3 +14,9 @@ scripts/_*.py
 docs/
 tasks/repos/
 tasks/swebench/
+tasks/*.json
+scripts/task_specs/
+scripts/legacy/
+scripts/build_tasks.py
+scripts/run_repo_eval.py
+scripts/run_full_ablation.py
