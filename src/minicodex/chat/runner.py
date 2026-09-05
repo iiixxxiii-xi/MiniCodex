@@ -68,6 +68,13 @@ class ChatRunner:
         self.model_name = model_name or getattr(model, "model", "") or type(model).__name__
         self.tool_sources = tool_sources
 
+    def set_repo(self, path: str | Path) -> None:
+        """Switch the working directory the chat operates on (``:cd <path>``)."""
+        p = Path(path).expanduser().resolve()
+        if not p.is_dir():
+            raise ValueError(f"not a directory: {p}")
+        self.repo = p
+
     async def run(self, instruction: str) -> ChatTurn:
         """Run one instruction and return its diff + summary.
 
@@ -123,6 +130,13 @@ async def run_chat_session(runner: ChatRunner, *, readline, write) -> int:
         text = line.strip()
         if not text or text.lower() in ("exit", "quit"):
             return 0
+        if text.startswith((":cd ", "cd ")):
+            try:
+                runner.set_repo(text.split(maxsplit=1)[1].strip())
+                write(f"working directory → {runner.repo}")
+            except (ValueError, IndexError) as exc:
+                write(f"error: {exc}")
+            continue
         try:
             turn = await runner.run(text)
         except KeyboardInterrupt:

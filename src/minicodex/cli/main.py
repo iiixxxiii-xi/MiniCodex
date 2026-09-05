@@ -243,11 +243,13 @@ def report_cmd(
 
 
 def main() -> None:
-    # Bare ``minicodex`` (no subcommand) drops straight into an interactive chat
-    # session — the ``claude``-style experience: type instructions, the agent
-    # edits the repo. (Equivalent to ``minicodex chat``.)
-    if len(sys.argv) <= 1:
-        sys.argv.append("chat")
+    # ``minicodex`` with no subcommand (or with chat flags like ``--repo``) drops
+    # straight into an interactive chat session — the ``claude``-style experience:
+    # ``minicodex --repo D:\proj`` == ``minicodex chat --repo D:\proj``.
+    _subcommands = {"run", "chat", "eval", "report"}
+    _global_flags = {"--help", "-h", "--install-completion", "--show-completion"}
+    if len(sys.argv) <= 1 or (sys.argv[1] not in _subcommands and sys.argv[1] not in _global_flags):
+        sys.argv.insert(1, "chat")
     app()
 
 
