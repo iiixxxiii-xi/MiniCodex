@@ -1,0 +1,6 @@
+{
+  "id": "smoke",
+  "repo": "smoke",
+  "instruction": "Pipeline smoke test: verify the harness runs end-to-end.",
+  "test_command": "echo smoke-ok"
+}

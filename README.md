@@ -64,19 +64,37 @@ User ──→ Context ──→ Agent Loop ──→ Tool Call
 
 **六项指标**（从 event log 复算）：Task Success、Avg Tool Calls、Token Cost、Latency、Recovery Rate、Invalid Tool Call Rate（后两项在此短任务 regime 无信号：无可恢复错误、无非法工具调用）。
 
-## 快速开始
+## 安装
 
 ```bash
-# Python 3.12+ + uv
-uv sync
-
-# 单任务（MockModel，无 API key 无成本）
-uv run minicodex run tasks/smoke.json --mock
-
-# 一批任务 → 报告
-uv run minicodex eval tasks/ --mock --output-dir results/
-uv run minicodex report results/
+uv sync   # Python 3.12+
 ```
+
+## 使用方式
+
+### Python API
+
+```python
+import asyncio
+from minicodex.model.mock import MockModel            # 或 OpenAIModel / AnthropicModel
+from minicodex.eval.runner import Runner
+from minicodex.eval.task import load_task
+
+task = load_task("examples/smoke.json")
+result = asyncio.run(Runner(MockModel(), output_dir="results/").run(task))
+print(f"{'PASS' if result.passed else 'FAIL'}  tool_calls={result.metrics.tool_calls}  cost=${result.metrics.cost_usd:.4f}")
+```
+
+### CLI
+
+```bash
+uv run minicodex run examples/smoke.json --mock   # 单任务 → PASS/FAIL + 指标
+uv run minicodex chat --repo .                    # 交互式：自然语言指令，agent 直接改仓库
+```
+
+### 模型
+
+`--model mock`（无 key、无成本）· `anthropic/<id>` · `openai/<id>` · `deepseek/<id>`（DeepSeek v4 走 thinking）。
 
 ### SWE-bench 基准
 
