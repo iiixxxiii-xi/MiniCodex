@@ -141,7 +141,7 @@ def run_cmd(
 @app.command("chat")
 def chat_cmd(
     repo: str = typer.Option(".", "--repo", help="Directory the agent reads and writes."),
-    model: str = typer.Option("mock", "--model", help="Model: mock, anthropic/<id>, openai/<id>, deepseek/<id>."),
+    model: str = typer.Option("deepseek/v4-pro", "--model", help="Model: deepseek/v4-pro (default), anthropic/<id>, openai/<id>, mock."),
     mock: bool = typer.Option(False, "--mock", help="Force MockModel (no API key)."),
     step_limit: int = typer.Option(0, "--step-limit", help="Max steps per turn (0 = unlimited)."),
     max_requeries: int = typer.Option(3, "--max-requeries", help="Retry requeries on model/format errors."),
@@ -243,6 +243,11 @@ def report_cmd(
 
 
 def main() -> None:
+    # Bare ``minicodex`` (no subcommand) drops straight into an interactive chat
+    # session — the ``claude``-style experience: type instructions, the agent
+    # edits the repo. (Equivalent to ``minicodex chat``.)
+    if len(sys.argv) <= 1:
+        sys.argv.append("chat")
     app()
 
 
