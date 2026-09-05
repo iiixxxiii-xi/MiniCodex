@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -23,6 +24,27 @@ from minicodex.toolsource.base import ToolSource
 from minicodex.toolsource.builtin import BuiltinToolSource
 
 logger = logging.getLogger(__name__)
+
+_PATH_RE = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s]+")
+
+
+def infer_repo(instruction: str) -> str | None:
+    """Infer a working directory from a Windows path in the instruction, else None.
+
+    Returns the file's parent (or the directory itself) when the instruction
+    mentions a path like ``D:/proj/src/f.py``. A truncated/nonexistent path walks
+    up to its nearest existing ancestor.
+    """
+    m = _PATH_RE.search(instruction)
+    if not m:
+        return None
+    path = Path(m.group(0).rstrip(".,;:）)]"))
+    p = path
+    while p != p.parent and not p.exists():
+        p = p.parent
+    if p.is_file():
+        return str(p.parent)
+    return str(p)
 
 
 @dataclass
@@ -137,6 +159,13 @@ async def run_chat_session(runner: ChatRunner, *, readline, write) -> int:
             except (ValueError, IndexError) as exc:
                 write(f"error: {exc}")
             continue
+        repo = infer_repo(text)
+        if repo and Path(repo) != runner.repo:
+            try:
+                runner.set_repo(repo)
+                write(f"working directory → {runner.repo}")
+            except ValueError as exc:
+                write(f"error: {exc}")
         try:
             turn = await runner.run(text)
         except KeyboardInterrupt:

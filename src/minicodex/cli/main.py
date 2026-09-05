@@ -10,14 +10,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import re
 import sys
 from pathlib import Path
 
 import typer
 from dotenv import load_dotenv
 
-from minicodex.chat.runner import ChatRunner, run_chat_session
+from minicodex.chat.runner import ChatRunner, infer_repo, run_chat_session
 from minicodex.eval.ablation import DEFAULT_PRESETS, run_ablation
 from minicodex.eval.report import (
     dump_ablation_results,
@@ -243,31 +242,9 @@ def report_cmd(
     typer.echo(render_markdown(loaded))
 
 
-_PATH_RE = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s]+")
-
-
-def _infer_repo(instruction: str) -> str:
-    """Pull a Windows path out of the instruction and return a working directory.
-
-    ``"fix the bug in D:\\proj\\src\\f.py"`` → ``D:\\proj\\src`` (the file's parent);
-    a bare directory → itself; no path → the current directory. A path that is
-    truncated or doesn't exist yet walks up to its nearest existing ancestor.
-    """
-    m = _PATH_RE.search(instruction)
-    if not m:
-        return "."
-    path = Path(m.group(0).rstrip(".,;:）)]"))
-    p = path
-    while p != p.parent and not p.exists():
-        p = p.parent
-    if p.is_file():
-        return str(p.parent)
-    return str(p)
-
-
 def _one_shot_chat(instruction: str) -> None:
     """Run one natural-language instruction (``claude``-style one-shot) and exit."""
-    repo = _infer_repo(instruction)
+    repo = infer_repo(instruction) or "."
     model_obj = resolve_model("deepseek/v4-pro", mock=False)
     runner = ChatRunner(model_obj, repo, max_requeries=3)
     turn = asyncio.run(runner.run(instruction))
