@@ -54,6 +54,11 @@ def resolve_model(model_id: str, mock: bool):
         return OpenAIModel(model=model_id.split("/", 1)[1])
     if model_id.startswith("deepseek/"):
         name = model_id.split("/", 1)[1]
+        # The DeepSeek API expects the full model id (``deepseek-v4-pro``); the
+        # ``deepseek/`` prefix is only our provider selector, so re-add the
+        # ``deepseek-`` prefix when the caller passed a short name.
+        if not name.startswith("deepseek-"):
+            name = "deepseek-" + name
         # DeepSeek V4 models are reasoning models: their chain-of-thought shares
         # the output budget with tool calls. Coding tasks need that deep
         # reasoning, so keep the thinking head ENABLED and raise the token budget
@@ -141,7 +146,7 @@ def run_cmd(
 @app.command("chat")
 def chat_cmd(
     repo: str = typer.Option(".", "--repo", help="Directory the agent reads and writes."),
-    model: str = typer.Option("deepseek/v4-pro", "--model", help="Model: deepseek/v4-pro (default), anthropic/<id>, openai/<id>, mock."),
+    model: str = typer.Option("deepseek/deepseek-v4-pro", "--model", help="Model: deepseek/deepseek-v4-pro (default), anthropic/<id>, openai/<id>, mock."),
     mock: bool = typer.Option(False, "--mock", help="Force MockModel (no API key)."),
     step_limit: int = typer.Option(0, "--step-limit", help="Max steps per turn (0 = unlimited)."),
     max_requeries: int = typer.Option(3, "--max-requeries", help="Retry requeries on model/format errors."),
@@ -245,7 +250,7 @@ def report_cmd(
 def _one_shot_chat(instruction: str) -> None:
     """Run one natural-language instruction (``claude``-style one-shot) and exit."""
     repo = infer_repo(instruction) or "."
-    model_obj = resolve_model("deepseek/v4-pro", mock=False)
+    model_obj = resolve_model("deepseek/deepseek-v4-pro", mock=False)
     runner = ChatRunner(model_obj, repo, max_requeries=3)
     turn = asyncio.run(runner.run(instruction))
     typer.echo(f"working directory: {runner.repo}")
