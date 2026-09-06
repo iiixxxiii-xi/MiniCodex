@@ -1,3 +1,5 @@
+import time
+
 import pytest
 
 from minicodex.controller.budgets import BudgetTracker
@@ -41,3 +43,34 @@ def test_check_raises_limits_exceeded():
     b.register_step()
     with pytest.raises(LimitsExceeded):
         b.check()
+
+
+def test_timeout_budget(monkeypatch):
+    fake_time = [0.0]
+    monkeypatch.setattr(time, "monotonic", lambda: fake_time[0])
+    b = BudgetTracker(timeout_seconds=5.0)
+    assert b.reason == ""
+    assert not b.exceeded
+    fake_time[0] = 5.0
+    assert b.reason == "timeout"
+    assert b.exceeded
+
+
+def test_timeout_raises_limits_exceeded(monkeypatch):
+    from minicodex.controller.exceptions import LimitsExceeded
+
+    fake_time = [0.0]
+    monkeypatch.setattr(time, "monotonic", lambda: fake_time[0])
+    b = BudgetTracker(timeout_seconds=5.0)
+    fake_time[0] = 5.0
+    with pytest.raises(LimitsExceeded):
+        b.check()
+
+
+def test_no_timeout_when_unset(monkeypatch):
+    fake_time = [0.0]
+    monkeypatch.setattr(time, "monotonic", lambda: fake_time[0])
+    b = BudgetTracker()
+    fake_time[0] = 999.0
+    assert not b.exceeded
+    assert b.reason == ""

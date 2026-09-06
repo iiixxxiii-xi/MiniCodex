@@ -44,6 +44,7 @@ class AgentLoop:
         step_limit: int = 0,
         token_limit: int = 0,
         cost_limit: float = 0.0,
+        timeout_seconds: float = 0.0,
         max_requeries: int = 3,
         tools: list[dict] | None = None,
         tool_sources: list[ToolSource] | None = None,
@@ -60,7 +61,9 @@ class AgentLoop:
         self.model = model
         self.env = env
         self.verifier = verifier
-        self.budgets = BudgetTracker(step_limit=step_limit, token_limit=token_limit, cost_limit=cost_limit)
+        self.budgets = BudgetTracker(
+            step_limit=step_limit, token_limit=token_limit, cost_limit=cost_limit, timeout_seconds=timeout_seconds
+        )
         self.requery = RequeryPolicy(max_requeries=max_requeries, policy=retry_policy)
         self.context_policy = ContextPolicy(
             name=context_policy,

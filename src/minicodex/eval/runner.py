@@ -86,6 +86,7 @@ class Runner:
         step_limit: int = 0,
         token_limit: int = 0,
         cost_limit: float = 0.0,
+        timeout_seconds: float = 0.0,
         max_requeries: int = 3,
         model_name: str = "",
         hidden_test_timeout: float = 120.0,
@@ -112,6 +113,7 @@ class Runner:
         self.step_limit = step_limit
         self.token_limit = token_limit
         self.cost_limit = cost_limit
+        self.timeout_seconds = timeout_seconds
         self.max_requeries = max_requeries
         self.model_name = model_name or getattr(model, "model", "") or type(model).__name__
         self.hidden_test_timeout = hidden_test_timeout
@@ -154,6 +156,7 @@ class Runner:
             step_limit=self.step_limit,
             token_limit=self.token_limit,
             cost_limit=self.cost_limit,
+            timeout_seconds=self.timeout_seconds,
             max_requeries=self.max_requeries,
             tools=filtered,
             tool_sources=tool_sources,

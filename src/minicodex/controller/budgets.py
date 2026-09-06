@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from minicodex.controller.exceptions import LimitsExceeded
 
 
@@ -9,13 +11,26 @@ class BudgetTracker:
     A limit of ``0`` means "no limit" (matching the mini-swe-agent convention).
     """
 
-    def __init__(self, step_limit: int = 0, token_limit: int = 0, cost_limit: float = 0.0):
+    def __init__(
+        self,
+        step_limit: int = 0,
+        token_limit: int = 0,
+        cost_limit: float = 0.0,
+        timeout_seconds: float = 0.0,
+    ):
         self.step_limit = step_limit
         self.token_limit = token_limit
         self.cost_limit = cost_limit
+        self.timeout_seconds = timeout_seconds
         self.steps = 0
         self.tokens = 0
         self.cost = 0.0
+        self._start = time.monotonic()
+
+    @property
+    def elapsed(self) -> float:
+        """Wall-clock seconds since the budget started."""
+        return time.monotonic() - self._start
 
     def register_step(self) -> None:
         self.steps += 1
@@ -34,6 +49,8 @@ class BudgetTracker:
             return "token_limit"
         if self.cost_limit > 0 and self.cost >= self.cost_limit:
             return "cost_limit"
+        if self.timeout_seconds > 0 and self.elapsed >= self.timeout_seconds:
+            return "timeout"
         return ""
 
     @property
