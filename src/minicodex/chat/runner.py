@@ -52,6 +52,7 @@ class ChatTurn:
     """The outcome of one chat instruction."""
 
     exit_status: str = ""
+    thought: str = ""
     diff: str = ""
     tool_calls: list[str] = field(default_factory=list)
     summary: str = ""
@@ -126,6 +127,7 @@ class ChatRunner:
             tool_calls = [event.tool_name for event in sink.events if isinstance(event, ActionEvent)]
             return ChatTurn(
                 exit_status=output.exit_status,
+                thought=output.thought,
                 diff=await asyncio.to_thread(_git_diff, self.repo),
                 tool_calls=tool_calls,
                 summary=_summarize(output.exit_status, len(tool_calls)),
@@ -174,15 +176,17 @@ async def run_chat_session(runner: ChatRunner, *, readline, write) -> int:
 
 
 def _render_turn(turn: ChatTurn) -> str:
-    lines = [turn.summary]
+    lines = []
+    if turn.thought:
+        lines.append(turn.thought.rstrip("\n"))
     if turn.tool_calls:
         lines.append("tools: " + ", ".join(turn.tool_calls))
-    if turn.error:
-        lines.append(f"error: {turn.error}")
     if turn.diff:
         lines.append("--- git diff ---")
         lines.append(turn.diff.rstrip("\n"))
-    return "\n".join(lines)
+    if turn.error:
+        lines.append(f"error: {turn.error}")
+    return "\n".join(lines) or turn.summary
 
 
 def _summarize(exit_status: str, n_tools: int) -> str:

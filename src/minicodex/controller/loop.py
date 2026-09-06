@@ -131,7 +131,7 @@ class AgentLoop:
                                 )
                                 continue
                         logger.info("agent finished normally after %d steps", self.budgets.steps)
-                        return StepOutput(done=True, exit_status="finished")
+                        return StepOutput(done=True, exit_status="finished", thought=output.thought)
                 except FormatError as exc:
                     exit_status = "RepeatedFormatError"
                     recoverable = self.requery.should_requery()
@@ -259,7 +259,7 @@ class AgentLoop:
                 duration_ms=(time.monotonic() - start) * 1000,
             )
         )
-        return StepOutput(done=not response.tool_calls)
+        return StepOutput(done=not response.tool_calls, thought=response.thought)
 
     async def _collect_stream(self, stream) -> ModelResponse:
         """Merge incremental stream chunks into one final :class:`ModelResponse`.

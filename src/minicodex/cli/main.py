@@ -34,7 +34,7 @@ from minicodex.toolsource.mcp import mcp_tool_source
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 app = typer.Typer(help="MiniCodex: a from-scratch coding-agent harness with evaluation.")
